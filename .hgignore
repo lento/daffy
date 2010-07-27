@@ -6,4 +6,4 @@ syntax: glob
 
 syntax: regexp
 .*\#.*\#$
-
+^.*\.egg-info/

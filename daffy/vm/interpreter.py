@@ -23,7 +23,7 @@
 This is a basic interpreter for Daffy assembly code.
 The interpreter expects lines in the form::
 
-    $name: optype([$opname.attr | <float value>], ...)
+    $name: optype([argname=$opname.attr | <float value>], ...)
 """
 
 import re
@@ -40,16 +40,18 @@ class ParserUndefinedState(Exception):
 
 
 # parser states
-NEW         = 0
-DOLLAR      = 1
-NAME        = 2
-OP          = 3
-ARGS        = 4
-ARGS_DOLLAR = 5
-ARGS_NAME   = 6
-ARGS_DOT    = 7
-ARGS_ATTR   = 8
-ARGS_FLOAT  = 9
+NEW         =  0
+DOLLAR      =  1
+NAME        =  2
+OPTYPE      =  3
+ARGS        =  4
+ARGS_NAME   =  5
+ARGS_EQUAL  =  6
+ARGS_DOLLAR =  7
+ARGS_TARGET =  8
+ARGS_DOT    =  9
+ARGS_ATTR   = 10
+ARGS_FLOAT  = 11
 
 def parse_line(line):
     """Parse a line of input"""
@@ -62,6 +64,7 @@ def parse_line(line):
     optype = ''
     args = []
     arg_name = ''
+    arg_target = ''
     arg_attr = ''
     arg_float = ''
     
@@ -87,13 +90,13 @@ def parse_line(line):
             if re.match(r'[a-zA-Z0-9_]', c):
                 name += c
             elif c == ':':
-                state = OP
+                state = OPTYPE
                 AFTER_COLON = True
             else:
                 index = '%s^' % ('-' * i)
                 error = 'at char %i: expecting ":"' % i
                 raise ParserSyntaxError('\n%s\n%s\n%s' % (line, index, error))
-        elif state == OP:
+        elif state == OPTYPE:
             if re.match(r'[a-zA-Z]', c):
                 AFTER_COLON = False
                 optype += c
@@ -104,31 +107,48 @@ def parse_line(line):
                 error = 'at char %i: expecting an operation type' % i
                 raise ParserSyntaxError('\n%s\n%s\n%s' % (line, index, error))
         elif state == ARGS:
-            if c == '$':
-                state = ARGS_DOLLAR
-            elif re.match(r'[0-9]', c):
-                arg_float += c
-                state = ARGS_FLOAT
+            if re.match(r'[a-zA-Z]', c):
+                arg_name += c
+                state = ARGS_NAME
             elif c == ')':
                 # the operation definition ended, we ignore the rest of the
                 # line, so it can be used for comments
                 break
             else:
                 index = '%s^' % ('-' * i)
-                error = 'at char %i: expecting a literal value, "$" or ")"' % i
+                error = 'at char %i: expecting an argument name or ")"' % i
+                raise ParserSyntaxError('\n%s\n%s\n%s' % (line, index, error))
+        elif state == ARGS_NAME:
+            if re.match(r'[a-zA-Z0-9_]', c):
+                arg_name += c
+            elif c == '=':
+                state = ARGS_EQUAL
+            else:
+                index = '%s^' % ('-' * i)
+                error = 'at char %i: expecting "="' % i
+                raise ParserSyntaxError('\n%s\n%s\n%s' % (line, index, error))
+        elif state == ARGS_EQUAL:
+            if c == '$':
+                state = ARGS_DOLLAR
+            elif re.match(r'[0-9]', c):
+                arg_float += c
+                state = ARGS_FLOAT
+            else:
+                index = '%s^' % ('-' * i)
+                error = 'at char %i: expecting a literal value or "$"' % i
                 raise ParserSyntaxError('\n%s\n%s\n%s' % (line, index, error))
         elif state == ARGS_DOLLAR:
             if re.match(r'[a-zA-Z]', c):
-                arg_name += c
-                state = ARGS_NAME
+                arg_target += c
+                state = ARGS_TARGET
             else:
                 index = '%s^' % ('-' * i)
                 error = 'at char %i: expecting an operation name' % i
                 raise ParserSyntaxError('\n%s\n%s\n%s' % (line, index, error))
-        elif state == ARGS_NAME:
+        elif state == ARGS_TARGET:
             if re.match(r'[a-zA-Z0-9_]', c):
                 AFTER_COMMA = False
-                arg_name += c
+                arg_target += c
             elif c == '.':
                 state = ARGS_DOT
             else:
@@ -147,15 +167,15 @@ def parse_line(line):
             if re.match(r'[a-zA-Z0-9_]', c):
                 arg_attr += c
             elif c == ',':
-                args.append((arg_name, arg_attr))
-                arg_name = arg_attr = ''
+                args.append((arg_name, arg_target, arg_attr))
+                arg_name = arg_target = arg_attr = ''
                 AFTER_COMMA = True
                 state = ARGS
             elif c == ')':
                 # the operation definition ended, we ignore the rest of the
                 # line, so it can be used for comments
-                args.append((arg_name, arg_attr))
-                arg_name = arg_attr = ''
+                args.append((arg_name, arg_target, arg_attr))
+                arg_name = arg_target = arg_attr = ''
                 break
             else:
                 index = '%s^' % ('-' * i)
@@ -163,15 +183,15 @@ def parse_line(line):
                 raise ParserSyntaxError('\n%s\n%s\n%s' % (line, index, error))
         elif state == ARGS_FLOAT:
             if c == ',':
-                args.append(float(arg_float))
-                arg_float = ''
+                args.append((arg_name, float(arg_float)))
+                arg_name = arg_float = ''
                 AFTER_COMMA = True
                 state = ARGS
             elif c == ')':
                 # the operation definition ended, we ignore the rest of the
                 # line, so it can be used for comments
-                args.append(float(arg_float))
-                arg_float = ''
+                args.append((arg_name, float(arg_float)))
+                arg_name = arg_float = ''
                 break
             elif c == '.':
                 if FLOAT_DECIMAL:

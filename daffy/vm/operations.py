@@ -96,7 +96,7 @@ def DVM_output_socket(op, name):
     for socket in op.outputs:
         if socket.name == name:
             return socket
-    raise InputSocketNotFoundError(name)
+    raise OutputSocketNotFoundError(name)
 
 
 # Operations

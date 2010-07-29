@@ -1,0 +1,167 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Scheduler &mdash; Daffy v0.1dev documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Daffy v0.1dev documentation" href="index.html" />
+    <link rel="next" title="Operation Types" href="optypes.html" />
+    <link rel="prev" title="Interpreter" href="interpreter.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="optypes.html" title="Operation Types"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="interpreter.html" title="Interpreter"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Daffy v0.1dev documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-daffy.vm.scheduler">
+<span id="scheduler"></span><h1>Scheduler<a class="headerlink" href="#module-daffy.vm.scheduler" title="Permalink to this headline">¶</a></h1>
+<p>Scheduler module</p>
+<dl class="function">
+<dt id="daffy.vm.scheduler.DVM_scheduler_operation_add">
+<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">DVM_scheduler_operation_add</tt><big>(</big><em>type</em>, <em>name</em>, <em>args</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#DVM_scheduler_operation_add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.DVM_scheduler_operation_add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create an operation, resolve its dependencies and add it to the
+scheduler&#8217;s <cite>opstable</cite> (and to the <cite>runnables</cite> queue if all of its
+dependencies are ready)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="daffy.vm.scheduler.DVM_scheduler_operation_find">
+<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">DVM_scheduler_operation_find</tt><big>(</big><em>name</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#DVM_scheduler_operation_find"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.DVM_scheduler_operation_find" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find and operation by name in the scheduler&#8217;s <cite>opstable</cite></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="daffy.vm.scheduler.DVM_scheduler_reset">
+<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">DVM_scheduler_reset</tt><big>(</big><em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#DVM_scheduler_reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.DVM_scheduler_reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset a scheduler to its initial state</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="daffy.vm.scheduler.DependencyError">
+<em class="property">exception </em><tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">DependencyError</tt><a class="reference internal" href="_modules/daffy/vm/scheduler.html#DependencyError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.DependencyError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Missing dependency</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="daffy.vm.scheduler.OperationAlreadyExistsError">
+<em class="property">exception </em><tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">OperationAlreadyExistsError</tt><a class="reference internal" href="_modules/daffy/vm/scheduler.html#OperationAlreadyExistsError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.OperationAlreadyExistsError" title="Permalink to this definition">¶</a></dt>
+<dd><p>The operation name already exists in the scheduler table</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="daffy.vm.scheduler.OperationNotFoundError">
+<em class="property">exception </em><tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">OperationNotFoundError</tt><a class="reference internal" href="_modules/daffy/vm/scheduler.html#OperationNotFoundError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.OperationNotFoundError" title="Permalink to this definition">¶</a></dt>
+<dd><p>The operation was not found in the scheduler table</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="daffy.vm.scheduler.Scheduler">
+<em class="property">class </em><tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">Scheduler</tt><a class="reference internal" href="_modules/daffy/vm/scheduler.html#Scheduler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.Scheduler" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <cite>Scheduler</cite> object keeps a table of all operations and a queue of
+operations that can be run, as all their dependancies are ready</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="daffy.vm.scheduler.WrongArgumentError">
+<em class="property">exception </em><tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">WrongArgumentError</tt><a class="reference internal" href="_modules/daffy/vm/scheduler.html#WrongArgumentError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.WrongArgumentError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrong argument in operation creation</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="interpreter.html"
+                        title="previous chapter">Interpreter</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="optypes.html"
+                        title="next chapter">Operation Types</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/scheduler.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="optypes.html" title="Operation Types"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="interpreter.html" title="Interpreter"
+             >previous</a> |</li>
+        <li><a href="index.html">Daffy v0.1dev documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2010, Lorenzo Pierfederici.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.1.
+    </div>
+  </body>
+</html>

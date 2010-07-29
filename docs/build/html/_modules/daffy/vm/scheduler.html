@@ -1,0 +1,214 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>daffy.vm.scheduler &mdash; Daffy v0.1dev documentation</title>
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="Daffy v0.1dev documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Daffy v0.1dev documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for daffy.vm.scheduler</h1><div class="highlight"><pre>
+<span class="c"># -*- coding: utf-8 -*-</span>
+<span class="c">#</span>
+<span class="c"># This file is part of Daffy.</span>
+<span class="c">#</span>
+<span class="c"># Daffy is free software: you can redistribute it and/or modify</span>
+<span class="c"># it under the terms of the GNU General Public License as published by</span>
+<span class="c"># the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c"># (at your option) any later version.</span>
+<span class="c">#</span>
+<span class="c"># Daffy is distributed in the hope that it will be useful,</span>
+<span class="c"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c"># GNU General Public License for more details.</span>
+<span class="c">#</span>
+<span class="c"># You should have received a copy of the GNU General Public License</span>
+<span class="c"># along with Daffy.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="c">#</span>
+<span class="c"># Original Copyright (c) 2010, Lorenzo Pierfederici &lt;lpierfederici@gmail.com&gt;</span>
+<span class="c"># Contributor(s): </span>
+<span class="c">#</span>
+<span class="sd">&quot;&quot;&quot;Scheduler module&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">daffy.vm.optypes</span> <span class="kn">import</span> <span class="n">DVM_operation_type_find</span>
+<span class="kn">from</span> <span class="nn">daffy.vm.operations</span> <span class="kn">import</span> <span class="n">Operation</span>
+<span class="kn">from</span> <span class="nn">daffy.vm.ops</span> <span class="kn">import</span> <span class="n">DVM_value_create</span>
+
+
+<span class="c"># Exceptions</span>
+<div class="viewcode-block" id="DependencyError"><a class="viewcode-back" href="../../../scheduler.html#daffy.vm.scheduler.DependencyError">[docs]</a><span class="k">class</span> <span class="nc">DependencyError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Missing dependency&quot;&quot;&quot;</span>
+
+</div>
+<div class="viewcode-block" id="OperationNotFoundError"><a class="viewcode-back" href="../../../scheduler.html#daffy.vm.scheduler.OperationNotFoundError">[docs]</a><span class="k">class</span> <span class="nc">OperationNotFoundError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The operation was not found in the scheduler table&quot;&quot;&quot;</span>
+
+</div>
+<div class="viewcode-block" id="OperationAlreadyExistsError"><a class="viewcode-back" href="../../../scheduler.html#daffy.vm.scheduler.OperationAlreadyExistsError">[docs]</a><span class="k">class</span> <span class="nc">OperationAlreadyExistsError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The operation name already exists in the scheduler table&quot;&quot;&quot;</span>
+
+</div>
+<div class="viewcode-block" id="WrongArgumentError"><a class="viewcode-back" href="../../../scheduler.html#daffy.vm.scheduler.WrongArgumentError">[docs]</a><span class="k">class</span> <span class="nc">WrongArgumentError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Wrong argument in operation creation&quot;&quot;&quot;</span>
+
+
+<span class="c"># Scheduler</span></div>
+<div class="viewcode-block" id="Scheduler"><a class="viewcode-back" href="../../../scheduler.html#daffy.vm.scheduler.Scheduler">[docs]</a><span class="k">class</span> <span class="nc">Scheduler</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A `Scheduler` object keeps a table of all operations and a queue of</span>
+<span class="sd">    operations that can be run, as all their dependancies are ready&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operations</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">runnables</span> <span class="o">=</span> <span class="p">[]</span>
+
+</div>
+<span class="k">def</span> <span class="nf">scheduler_operation_run</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
+    <span class="n">scheduler</span><span class="o">.</span><span class="n">runnables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">op_name_exists</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">scheduler</span><span class="o">.</span><span class="n">operations</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+    <span class="k">return</span> <span class="bp">False</span>
+
+<span class="c"># API</span>
+<div class="viewcode-block" id="DVM_scheduler_operation_find"><a class="viewcode-back" href="../../../scheduler.html#daffy.vm.scheduler.DVM_scheduler_operation_find">[docs]</a><span class="k">def</span> <span class="nf">DVM_scheduler_operation_find</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Find and operation by name in the scheduler&#39;s `opstable`&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">scheduler</span><span class="o">.</span><span class="n">operations</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">op</span>
+    <span class="k">raise</span> <span class="n">OperationNotFoundError</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="DVM_scheduler_operation_add"><a class="viewcode-back" href="../../../scheduler.html#daffy.vm.scheduler.DVM_scheduler_operation_add">[docs]</a><span class="k">def</span> <span class="nf">DVM_scheduler_operation_add</span><span class="p">(</span><span class="nb">type</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Resolve operation dependencies and add it to the scheduler&#39;s `opstable`</span>
+<span class="sd">    (and to the `runnables` queue if all of its dependencies are ready)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">optype</span> <span class="o">=</span> <span class="n">DVM_operation_type_find</span><span class="p">(</span><span class="nb">type</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">op_name_exists</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">OperationAlreadyExistsError</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">[]</span>
+    
+    <span class="k">if</span> <span class="nb">type</span> <span class="o">==</span> <span class="s">&#39;value&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">arg_name</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+                <span class="n">op</span> <span class="o">=</span> <span class="n">DVM_value_create</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">WrongArgumentError</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">WrongArgumentError</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">arg</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">arg_name</span><span class="p">,</span> <span class="n">arg_value</span> <span class="o">=</span> <span class="n">arg</span>
+                <span class="n">valueop_name</span> <span class="o">=</span> <span class="s">&#39;_</span><span class="si">%s</span><span class="s">_arg_</span><span class="si">%i</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">valueop_args</span> <span class="o">=</span> <span class="p">((</span><span class="s">&#39;value&#39;</span><span class="p">,</span> <span class="n">arg_value</span><span class="p">),</span> <span class="p">)</span>
+                <span class="n">DVM_scheduler_operation_add</span><span class="p">(</span><span class="s">&#39;value&#39;</span><span class="p">,</span> <span class="n">valueop_name</span><span class="p">,</span>
+                                                        <span class="n">valueop_args</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
+                <span class="n">target</span> <span class="o">=</span> <span class="n">DVM_scheduler_operation_find</span><span class="p">(</span><span class="n">valueop_name</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
+                <span class="n">inputs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">arg_name</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="s">&#39;value&#39;</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">arg_name</span><span class="p">,</span> <span class="n">target_name</span><span class="p">,</span> <span class="n">attr</span> <span class="o">=</span> <span class="n">arg</span>
+                <span class="n">target</span> <span class="o">=</span> <span class="n">DVM_scheduler_operation_find</span><span class="p">(</span><span class="n">target_name</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
+                <span class="n">inputs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">arg_name</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">attr</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">WrongArgumentError</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+        <span class="n">op</span> <span class="o">=</span> <span class="n">Operation</span><span class="p">(</span><span class="n">optype</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+
+    <span class="n">scheduler</span><span class="o">.</span><span class="n">operations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
+    <span class="n">runnable</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="k">for</span> <span class="n">insock</span> <span class="ow">in</span> <span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">insock</span><span class="o">.</span><span class="n">op</span> <span class="ow">and</span> <span class="n">insock</span><span class="o">.</span><span class="n">op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">scheduler</span><span class="o">.</span><span class="n">operations</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">DependencyError</span>
+        <span class="k">if</span> <span class="n">insock</span><span class="o">.</span><span class="n">op</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">insock</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">ready</span><span class="p">:</span>
+            <span class="n">runnable</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="n">op</span><span class="o">.</span><span class="n">waiting_on</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">insock</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">blocking</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">runnable</span><span class="p">:</span>
+        <span class="n">scheduler_operation_run</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="DVM_scheduler_reset"><a class="viewcode-back" href="../../../scheduler.html#daffy.vm.scheduler.DVM_scheduler_reset">[docs]</a><span class="k">def</span> <span class="nf">DVM_scheduler_reset</span><span class="p">(</span><span class="n">scheduler</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Reset a scheduler to its initial state&quot;&quot;&quot;</span>
+    <span class="n">scheduler</span><span class="o">.</span><span class="n">operations</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">scheduler</span><span class="o">.</span><span class="n">runnables</span> <span class="o">=</span> <span class="p">[]</span>
+</pre></div></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Daffy v0.1dev documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2010, Lorenzo Pierfederici.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.1.
+    </div>
+  </body>
+</html>

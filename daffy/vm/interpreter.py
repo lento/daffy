@@ -23,12 +23,12 @@
 This is a basic interpreter for Daffy assembly code.
 The interpreter expects lines in the form::
 
-    $name: optype([argname=$opname.attr | <float value>], ...)
+    $name: optype([argname=$target.attr | <float value>], ...)
 """
 
 import re
 from daffy.vm.optypes import optypes
-#from daffy.vm.scheduler import DVM_scheduler_operation_add
+from daffy.vm.scheduler import DVM_scheduler_operation_add
 
 # Exceptions
 class ParserSyntaxError(Exception):
@@ -53,7 +53,7 @@ ARGS_DOT    =  9
 ARGS_ATTR   = 10
 ARGS_FLOAT  = 11
 
-def parse_line(line):
+def DVM_line_parse(line):
     """Parse a line of input"""
     state = NEW
     AFTER_COLON = False
@@ -210,6 +210,17 @@ def parse_line(line):
         else:
             raise ParserUndefinedState(state)
     
-    print(optype, name, args)
+    return optype, name, args
 
+def DVM_instruction_run(instruction, scheduler):
+    """Parse an instruction and schedule the resulting operation for
+    execution
+    """
+    optype, name, args = DVM_line_parse(instruction)
+    DVM_scheduler_operation_add(optype, name, args, scheduler)
+
+def DVM_program_run(program, scheduler):
+    """Run a Daffy program"""
+    for instruction in program:
+        DVM_instruction_run(instruction, scheduler)
 

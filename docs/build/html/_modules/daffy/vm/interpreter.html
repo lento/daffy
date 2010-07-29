@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>daffy.vm.parser &mdash; Daffy v0.1dev documentation</title>
+    <title>daffy.vm.interpreter &mdash; Daffy v0.1dev documentation</title>
     <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
@@ -45,7 +45,7 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <h1>Source code for daffy.vm.parser</h1><div class="highlight"><pre>
+  <h1>Source code for daffy.vm.interpreter</h1><div class="highlight"><pre>
 <span class="c"># -*- coding: utf-8 -*-</span>
 <span class="c">#</span>
 <span class="c"># This file is part of Daffy.</span>
@@ -66,23 +66,23 @@
 <span class="c"># Original Copyright (c) 2010, Lorenzo Pierfederici &lt;lpierfederici@gmail.com&gt;</span>
 <span class="c"># Contributor(s): </span>
 <span class="c">#</span>
-<span class="sd">&quot;&quot;&quot;Parser module</span>
+<span class="sd">&quot;&quot;&quot;Interpreter module</span>
 
-<span class="sd">This is a basic parser for Daffy assembly code.</span>
-<span class="sd">The parer expects lines in the form:</span>
-<span class="sd">$`name`: `optype`([$`opname`.`attr` | `float value`], ...)</span>
+<span class="sd">This is a basic interpreter for Daffy assembly code.</span>
+<span class="sd">The interpreter expects lines in the form:</span>
+<span class="sd">$name: optype([$opname.attr | &lt;float value&gt;], ...)</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">from</span> <span class="nn">daffy.vm.ops</span> <span class="kn">import</span> <span class="n">optypes</span>
-<span class="kn">from</span> <span class="nn">daffy.vm.scheduler</span> <span class="kn">import</span> <span class="n">DVM_scheduler_operation_add</span>
+<span class="kn">from</span> <span class="nn">daffy.vm.optypes</span> <span class="kn">import</span> <span class="n">optypes</span>
+<span class="c">#from daffy.vm.scheduler import DVM_scheduler_operation_add</span>
 
 <span class="c"># Exceptions</span>
-<div class="viewcode-block" id="ParserSyntaxError"><a class="viewcode-back" href="../../../parser.html#daffy.vm.parser.ParserSyntaxError">[docs]</a><span class="k">class</span> <span class="nc">ParserSyntaxError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<div class="viewcode-block" id="ParserSyntaxError"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.ParserSyntaxError">[docs]</a><span class="k">class</span> <span class="nc">ParserSyntaxError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A syntax error&quot;&quot;&quot;</span>
 
 </div>
-<div class="viewcode-block" id="ParserUndefinedState"><a class="viewcode-back" href="../../../parser.html#daffy.vm.parser.ParserUndefinedState">[docs]</a><span class="k">class</span> <span class="nc">ParserUndefinedState</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<div class="viewcode-block" id="ParserUndefinedState"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.ParserUndefinedState">[docs]</a><span class="k">class</span> <span class="nc">ParserUndefinedState</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The parser reached an undefined state&quot;&quot;&quot;</span>
 
 
@@ -98,7 +98,7 @@
 <span class="n">ARGS_ATTR</span>   <span class="o">=</span> <span class="mi">8</span>
 <span class="n">ARGS_FLOAT</span>  <span class="o">=</span> <span class="mi">9</span>
 
-<div class="viewcode-block" id="parse_line"><a class="viewcode-back" href="../../../parser.html#daffy.vm.parser.parse_line">[docs]</a><span class="k">def</span> <span class="nf">parse_line</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+<div class="viewcode-block" id="parse_line"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.parse_line">[docs]</a><span class="k">def</span> <span class="nf">parse_line</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Parse a line of input&quot;&quot;&quot;</span>
     <span class="n">state</span> <span class="o">=</span> <span class="n">NEW</span>
     <span class="n">AFTER_COLON</span> <span class="o">=</span> <span class="bp">False</span>

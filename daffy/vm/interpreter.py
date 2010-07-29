@@ -18,16 +18,17 @@
 # Original Copyright (c) 2010, Lorenzo Pierfederici <lpierfederici@gmail.com>
 # Contributor(s): 
 #
-"""Parser module
+"""Interpreter module
 
-This is a basic parser for Daffy assembly code.
-The parer expects lines in the form:
-$name: optype([$opname.attr | <float value>], ...)
+This is a basic interpreter for Daffy assembly code.
+The interpreter expects lines in the form::
+
+    $name: optype([$opname.attr | <float value>], ...)
 """
 
 import re
 from daffy.vm.optypes import optypes
-from daffy.vm.scheduler import DVM_scheduler_operation_add
+#from daffy.vm.scheduler import DVM_scheduler_operation_add
 
 # Exceptions
 class ParserSyntaxError(Exception):

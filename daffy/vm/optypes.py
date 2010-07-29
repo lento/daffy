@@ -38,7 +38,7 @@ def DVM_operation_type_register(op):
         optypes.append(op)
 
 def DVM_operation_type_find(type):
-    """Return an optype from the list of rgistered types"""
+    """Return an optype from the list of registered types"""
     for optype in optypes:
         if optype.name == type:
             return optype

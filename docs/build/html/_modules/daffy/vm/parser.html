@@ -1,0 +1,283 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>daffy.vm.parser &mdash; Daffy v0.1dev documentation</title>
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="Daffy v0.1dev documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Daffy v0.1dev documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for daffy.vm.parser</h1><div class="highlight"><pre>
+<span class="c"># -*- coding: utf-8 -*-</span>
+<span class="c">#</span>
+<span class="c"># This file is part of Daffy.</span>
+<span class="c">#</span>
+<span class="c"># Daffy is free software: you can redistribute it and/or modify</span>
+<span class="c"># it under the terms of the GNU General Public License as published by</span>
+<span class="c"># the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c"># (at your option) any later version.</span>
+<span class="c">#</span>
+<span class="c"># Daffy is distributed in the hope that it will be useful,</span>
+<span class="c"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c"># GNU General Public License for more details.</span>
+<span class="c">#</span>
+<span class="c"># You should have received a copy of the GNU General Public License</span>
+<span class="c"># along with Daffy.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="c">#</span>
+<span class="c"># Original Copyright (c) 2010, Lorenzo Pierfederici &lt;lpierfederici@gmail.com&gt;</span>
+<span class="c"># Contributor(s): </span>
+<span class="c">#</span>
+<span class="sd">&quot;&quot;&quot;Parser module</span>
+
+<span class="sd">This is a basic parser for Daffy assembly code.</span>
+<span class="sd">The parer expects lines in the form:</span>
+<span class="sd">$`name`: `optype`([$`opname`.`attr` | `float value`], ...)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">daffy.vm.ops</span> <span class="kn">import</span> <span class="n">optypes</span>
+<span class="kn">from</span> <span class="nn">daffy.vm.scheduler</span> <span class="kn">import</span> <span class="n">DVM_scheduler_operation_add</span>
+
+<span class="c"># Exceptions</span>
+<div class="viewcode-block" id="ParserSyntaxError"><a class="viewcode-back" href="../../../parser.html#daffy.vm.parser.ParserSyntaxError">[docs]</a><span class="k">class</span> <span class="nc">ParserSyntaxError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A syntax error&quot;&quot;&quot;</span>
+
+</div>
+<div class="viewcode-block" id="ParserUndefinedState"><a class="viewcode-back" href="../../../parser.html#daffy.vm.parser.ParserUndefinedState">[docs]</a><span class="k">class</span> <span class="nc">ParserUndefinedState</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The parser reached an undefined state&quot;&quot;&quot;</span>
+
+
+<span class="c"># parser states</span></div>
+<span class="n">NEW</span>         <span class="o">=</span> <span class="mi">0</span>
+<span class="n">DOLLAR</span>      <span class="o">=</span> <span class="mi">1</span>
+<span class="n">NAME</span>        <span class="o">=</span> <span class="mi">2</span>
+<span class="n">OP</span>          <span class="o">=</span> <span class="mi">3</span>
+<span class="n">ARGS</span>        <span class="o">=</span> <span class="mi">4</span>
+<span class="n">ARGS_DOLLAR</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">ARGS_NAME</span>   <span class="o">=</span> <span class="mi">6</span>
+<span class="n">ARGS_DOT</span>    <span class="o">=</span> <span class="mi">7</span>
+<span class="n">ARGS_ATTR</span>   <span class="o">=</span> <span class="mi">8</span>
+<span class="n">ARGS_FLOAT</span>  <span class="o">=</span> <span class="mi">9</span>
+
+<div class="viewcode-block" id="parse_line"><a class="viewcode-back" href="../../../parser.html#daffy.vm.parser.parse_line">[docs]</a><span class="k">def</span> <span class="nf">parse_line</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parse a line of input&quot;&quot;&quot;</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">NEW</span>
+    <span class="n">AFTER_COLON</span> <span class="o">=</span> <span class="bp">False</span>
+    <span class="n">AFTER_COMMA</span> <span class="o">=</span> <span class="bp">False</span>
+    <span class="n">FLOAT_DECIMAL</span> <span class="o">=</span> <span class="bp">False</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+    <span class="n">optype</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">arg_name</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+    <span class="n">arg_attr</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+    <span class="n">arg_float</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+    
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">AFTER_COLON</span> <span class="ow">or</span> <span class="n">AFTER_COMMA</span><span class="p">)</span> <span class="ow">and</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;\s&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+            <span class="k">pass</span>    <span class="c"># ignore whitespace</span>
+        <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">NEW</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;$&#39;</span><span class="p">:</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">DOLLAR</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting &quot;$&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">DOLLAR</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[a-zA-Z]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+                <span class="n">name</span> <span class="o">+=</span> <span class="n">c</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">NAME</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting an operation name&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">NAME</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[a-zA-Z0-9_]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+                <span class="n">name</span> <span class="o">+=</span> <span class="n">c</span>
+            <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;:&#39;</span><span class="p">:</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">OP</span>
+                <span class="n">AFTER_COLON</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting &quot;:&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">OP</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[a-zA-Z]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+                <span class="n">AFTER_COLON</span> <span class="o">=</span> <span class="bp">False</span>
+                <span class="n">optype</span> <span class="o">+=</span> <span class="n">c</span>
+            <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;(&#39;</span><span class="p">:</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting an operation type&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">ARGS</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;$&#39;</span><span class="p">:</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS_DOLLAR</span>
+            <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[0-9]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+                <span class="n">arg_float</span> <span class="o">+=</span> <span class="n">c</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS_FLOAT</span>
+            <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;)&#39;</span><span class="p">:</span>
+                <span class="c"># the operation definition ended, we ignore the rest of the</span>
+                <span class="c"># line, so it can be used for comments</span>
+                <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting a literal value, &quot;$&quot; or &quot;)&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">ARGS_DOLLAR</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[a-zA-Z]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+                <span class="n">arg_name</span> <span class="o">+=</span> <span class="n">c</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS_NAME</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting an operation name&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">ARGS_NAME</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[a-zA-Z0-9_]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+                <span class="n">AFTER_COMMA</span> <span class="o">=</span> <span class="bp">False</span>
+                <span class="n">arg_name</span> <span class="o">+=</span> <span class="n">c</span>
+            <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;.&#39;</span><span class="p">:</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS_DOT</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting &quot;.&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">ARGS_DOT</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[a-zA-Z]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+                <span class="n">arg_attr</span> <span class="o">+=</span> <span class="n">c</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS_ATTR</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting an attribute name&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">ARGS_ATTR</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[a-zA-Z0-9_]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+                <span class="n">arg_attr</span> <span class="o">+=</span> <span class="n">c</span>
+            <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;,&#39;</span><span class="p">:</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">arg_name</span><span class="p">,</span> <span class="n">arg_attr</span><span class="p">))</span>
+                <span class="n">arg_name</span> <span class="o">=</span> <span class="n">arg_attr</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+                <span class="n">AFTER_COMMA</span> <span class="o">=</span> <span class="bp">True</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS</span>
+            <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;)&#39;</span><span class="p">:</span>
+                <span class="c"># the operation definition ended, we ignore the rest of the</span>
+                <span class="c"># line, so it can be used for comments</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">arg_name</span><span class="p">,</span> <span class="n">arg_attr</span><span class="p">))</span>
+                <span class="n">arg_name</span> <span class="o">=</span> <span class="n">arg_attr</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+                <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting &quot;,&quot; or &quot;)&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">ARGS_FLOAT</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;,&#39;</span><span class="p">:</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">arg_float</span><span class="p">))</span>
+                <span class="n">arg_float</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+                <span class="n">AFTER_COMMA</span> <span class="o">=</span> <span class="bp">True</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS</span>
+            <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;)&#39;</span><span class="p">:</span>
+                <span class="c"># the operation definition ended, we ignore the rest of the</span>
+                <span class="c"># line, so it can be used for comments</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">arg_float</span><span class="p">))</span>
+                <span class="n">arg_float</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+                <span class="k">break</span>
+            <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;.&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">FLOAT_DECIMAL</span><span class="p">:</span>
+                    <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                    <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting  a digit, &quot;,&quot; or &quot;)&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                    <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">arg_float</span> <span class="o">+=</span> <span class="n">c</span>
+                    <span class="n">FLOAT_DECIMAL</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[0-9]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+                <span class="n">arg_float</span> <span class="o">+=</span> <span class="n">c</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting a digit, &quot;,&quot; or &quot;)&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ParserUndefinedState</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    
+    <span class="k">print</span><span class="p">(</span><span class="n">optype</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+</pre></div></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Daffy v0.1dev documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2010, Lorenzo Pierfederici.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.1.
+    </div>
+  </body>
+</html>

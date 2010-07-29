@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Daffy operations &mdash; Daffy v0.1dev documentation</title>
+    <title>parser &mdash; Daffy v0.1dev documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
@@ -23,8 +23,8 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="Daffy v0.1dev documentation" href="index.html" />
-    <link rel="next" title="value" href="operations/value.html" />
-    <link rel="prev" title="parser" href="parser.html" /> 
+    <link rel="next" title="Daffy operations" href="operations.html" />
+    <link rel="prev" title="Welcome to Daffy’s documentation!" href="index.html" /> 
   </head>
   <body>
     <div class="related">
@@ -37,10 +37,10 @@
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="operations/value.html" title="value"
+          <a href="operations.html" title="Daffy operations"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="parser.html" title="parser"
+          <a href="index.html" title="Welcome to Daffy’s documentation!"
              accesskey="P">previous</a> |</li>
         <li><a href="index.html">Daffy v0.1dev documentation</a> &raquo;</li> 
       </ul>
@@ -51,42 +51,30 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="daffy-operations">
-<h1>Daffy operations<a class="headerlink" href="#daffy-operations" title="Permalink to this headline">¶</a></h1>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="operations/value.html"><tt class="docutils literal"><span class="pre">value</span></tt></a><ul>
-<li class="toctree-l2"><a class="reference internal" href="operations/value.html#inputs">Inputs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="operations/value.html#outputs">Outputs</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="operations/add.html"><tt class="docutils literal"><span class="pre">add</span></tt></a><ul>
-<li class="toctree-l2"><a class="reference internal" href="operations/add.html#inputs">Inputs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="operations/add.html#outputs">Outputs</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="operations/sub.html"><tt class="docutils literal"><span class="pre">sub</span></tt></a><ul>
-<li class="toctree-l2"><a class="reference internal" href="operations/sub.html#inputs">Inputs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="operations/sub.html#outputs">Outputs</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="operations/mul.html"><tt class="docutils literal"><span class="pre">mul</span></tt></a><ul>
-<li class="toctree-l2"><a class="reference internal" href="operations/mul.html#inputs">Inputs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="operations/mul.html#outputs">Outputs</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="operations/div.html"><tt class="docutils literal"><span class="pre">div</span></tt></a><ul>
-<li class="toctree-l2"><a class="reference internal" href="operations/div.html#inputs">Inputs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="operations/div.html#outputs">Outputs</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="operations/print.html"><tt class="docutils literal"><span class="pre">print</span></tt></a><ul>
-<li class="toctree-l2"><a class="reference internal" href="operations/print.html#inputs">Inputs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="operations/print.html#outputs">Outputs</a></li>
-</ul>
-</li>
-</ul>
-</div>
+  <div class="section" id="module-daffy.vm.parser">
+<span id="parser"></span><h1><tt class="xref py py-mod docutils literal"><span class="pre">parser</span></tt><a class="headerlink" href="#module-daffy.vm.parser" title="Permalink to this headline">¶</a></h1>
+<p>Parser module</p>
+<p>This is a basic parser for Daffy assembly code.
+The parer expects lines in the form:
+$name: optype([$opname.attr | &lt;float value&gt;], ...)</p>
+<dl class="exception">
+<dt id="daffy.vm.parser.ParserSyntaxError">
+<em class="property">exception </em><tt class="descclassname">daffy.vm.parser.</tt><tt class="descname">ParserSyntaxError</tt><a class="reference internal" href="_modules/daffy/vm/parser.html#ParserSyntaxError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.parser.ParserSyntaxError" title="Permalink to this definition">¶</a></dt>
+<dd><p>A syntax error</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="daffy.vm.parser.ParserUndefinedState">
+<em class="property">exception </em><tt class="descclassname">daffy.vm.parser.</tt><tt class="descname">ParserUndefinedState</tt><a class="reference internal" href="_modules/daffy/vm/parser.html#ParserUndefinedState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.parser.ParserUndefinedState" title="Permalink to this definition">¶</a></dt>
+<dd><p>The parser reached an undefined state</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="daffy.vm.parser.parse_line">
+<tt class="descclassname">daffy.vm.parser.</tt><tt class="descname">parse_line</tt><big>(</big><em>line</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/parser.html#parse_line"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.parser.parse_line" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse a line of input</p>
+</dd></dl>
+
 </div>
 
 
@@ -96,14 +84,14 @@
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
   <h4>Previous topic</h4>
-  <p class="topless"><a href="parser.html"
-                        title="previous chapter"><tt class="docutils literal docutils literal"><span class="pre">parser</span></tt></a></p>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Welcome to Daffy&#8217;s documentation!</a></p>
   <h4>Next topic</h4>
-  <p class="topless"><a href="operations/value.html"
-                        title="next chapter"><tt class="docutils literal"><span class="pre">value</span></tt></a></p>
+  <p class="topless"><a href="operations.html"
+                        title="next chapter">Daffy operations</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
-    <li><a href="_sources/operations.txt"
+    <li><a href="_sources/parser.txt"
            rel="nofollow">Show Source</a></li>
   </ul>
 <div id="searchbox" style="display: none">
@@ -133,10 +121,10 @@
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="operations/value.html" title="value"
+          <a href="operations.html" title="Daffy operations"
              >next</a> |</li>
         <li class="right" >
-          <a href="parser.html" title="parser"
+          <a href="index.html" title="Welcome to Daffy’s documentation!"
              >previous</a> |</li>
         <li><a href="index.html">Daffy v0.1dev documentation</a> &raquo;</li> 
       </ul>

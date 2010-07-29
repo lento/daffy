@@ -1,9 +1,9 @@
-# Operation list
-operations = []
+# Operation types list
+optypes = []
 
-def DVM_operation_register(op):
-    if op not in operations:
-        operations.append(op)
+def DVM_operation_type_register(op):
+    if op not in optypes:
+        optypes.append(op)
 
 
 import value

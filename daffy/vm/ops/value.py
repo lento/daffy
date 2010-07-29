@@ -36,7 +36,7 @@ value : value
 
 from daffy.vm.operations import OperationType, InputSocketType, OutputSocketType
 from daffy.vm.operations import Operation
-from daffy.vm.ops import DVM_operation_register
+from daffy.vm.ops import DVM_operation_type_register
 
 # inputs and outputs
 inputs = []
@@ -61,5 +61,5 @@ def DVM_value_create(name, val):
     return newval
 
 # register the operation
-DVM_operation_register(op)
+DVM_operation_type_register(op)
 

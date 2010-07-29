@@ -15,6 +15,7 @@ Contents:
     :maxdepth: 2
 
     parser
+    optypes
     operations
 
 Indices and tables

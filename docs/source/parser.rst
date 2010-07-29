@@ -1,5 +1,5 @@
-:mod:`parser`
-=============
+Parser
+======
 
 .. automodule:: daffy.vm.parser
    :members:

@@ -18,44 +18,33 @@
 # Original Copyright (c) 2010, Lorenzo Pierfederici <lpierfederici@gmail.com>
 # Contributor(s): 
 #
-"""`print` operation
+"""Operation types module
 
-The `print` operation prints a value to standard output.
-
-Inputs
-------
-value : value
-    the value to be printed
-
-Outputs
--------
-`none`
+This module defines the `optypes` list and API functions used to manage
+operation types.
 """
 
-from daffy.vm.operations import OperationType, InputSocketType, OutputSocketType
-from daffy.vm.optypes import DVM_operation_type_register
+# Exceptions
+class OperationTypeNotFoundError(Exception):
+    """Operation error"""
 
-# inputs and outputs
-inputs = [
-    InputSocketType('value', 0.0),
-]
 
-outputs = []
+# Operation types list
+optypes = []
 
-# execfunc
-def execfunc(self):
-    val = DVM_input_value_get(self, 'value')
+def DVM_operation_type_register(op):
+    """Register a new type in the `optypes` list"""
+    if op not in optypes:
+        optypes.append(op)
 
-    print(val)
+def DVM_operation_type_find(type):
+    """Return an optype from the list of rgistered types"""
+    for optype in optypes:
+        if optype.name == type:
+            return optype
+    raise OperationTypeNotFoundError(type)
 
-# operation type definition
-op = OperationType(
-    name='print',
-    inputs=inputs,
-    outputs=outputs,
-    execfunc=execfunc
-)
 
-# register the operation
-DVM_operation_type_register(op)
+# Load optypes and populate the list, beware of import dependency issue
+import daffy.vm.ops
 

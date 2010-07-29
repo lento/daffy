@@ -26,7 +26,7 @@ $name: optype([$opname.attr | <float value>], ...)
 """
 
 import re
-from daffy.vm.ops import optypes
+from daffy.vm.optypes import optypes
 from daffy.vm.scheduler import DVM_scheduler_operation_add
 
 # Exceptions

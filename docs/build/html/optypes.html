@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Parser &mdash; Daffy v0.1dev documentation</title>
+    <title>Operation Types &mdash; Daffy v0.1dev documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
@@ -23,8 +23,8 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="Daffy v0.1dev documentation" href="index.html" />
-    <link rel="next" title="Operation Types" href="optypes.html" />
-    <link rel="prev" title="Welcome to Daffy’s documentation!" href="index.html" /> 
+    <link rel="next" title="Daffy operations" href="operations.html" />
+    <link rel="prev" title="Parser" href="parser.html" /> 
   </head>
   <body>
     <div class="related">
@@ -37,10 +37,10 @@
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="optypes.html" title="Operation Types"
+          <a href="operations.html" title="Daffy operations"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="index.html" title="Welcome to Daffy’s documentation!"
+          <a href="parser.html" title="Parser"
              accesskey="P">previous</a> |</li>
         <li><a href="index.html">Daffy v0.1dev documentation</a> &raquo;</li> 
       </ul>
@@ -51,28 +51,27 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="module-daffy.vm.parser">
-<span id="parser"></span><h1>Parser<a class="headerlink" href="#module-daffy.vm.parser" title="Permalink to this headline">¶</a></h1>
-<p>Parser module</p>
-<p>This is a basic parser for Daffy assembly code.
-The parer expects lines in the form:
-$name: optype([$opname.attr | &lt;float value&gt;], ...)</p>
-<dl class="exception">
-<dt id="daffy.vm.parser.ParserSyntaxError">
-<em class="property">exception </em><tt class="descclassname">daffy.vm.parser.</tt><tt class="descname">ParserSyntaxError</tt><a class="reference internal" href="_modules/daffy/vm/parser.html#ParserSyntaxError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.parser.ParserSyntaxError" title="Permalink to this definition">¶</a></dt>
-<dd><p>A syntax error</p>
-</dd></dl>
-
-<dl class="exception">
-<dt id="daffy.vm.parser.ParserUndefinedState">
-<em class="property">exception </em><tt class="descclassname">daffy.vm.parser.</tt><tt class="descname">ParserUndefinedState</tt><a class="reference internal" href="_modules/daffy/vm/parser.html#ParserUndefinedState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.parser.ParserUndefinedState" title="Permalink to this definition">¶</a></dt>
-<dd><p>The parser reached an undefined state</p>
+  <div class="section" id="module-daffy.vm.optypes">
+<span id="operation-types"></span><h1>Operation Types<a class="headerlink" href="#module-daffy.vm.optypes" title="Permalink to this headline">¶</a></h1>
+<p>Operation types module</p>
+<p>This module defines the <cite>optypes</cite> list and API functions used to manage
+operation types.</p>
+<dl class="function">
+<dt id="daffy.vm.optypes.DVM_operation_type_find">
+<tt class="descclassname">daffy.vm.optypes.</tt><tt class="descname">DVM_operation_type_find</tt><big>(</big><em>type</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/optypes.html#DVM_operation_type_find"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.optypes.DVM_operation_type_find" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an optype from the list of rgistered types</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="daffy.vm.parser.parse_line">
-<tt class="descclassname">daffy.vm.parser.</tt><tt class="descname">parse_line</tt><big>(</big><em>line</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/parser.html#parse_line"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.parser.parse_line" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parse a line of input</p>
+<dt id="daffy.vm.optypes.DVM_operation_type_register">
+<tt class="descclassname">daffy.vm.optypes.</tt><tt class="descname">DVM_operation_type_register</tt><big>(</big><em>op</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/optypes.html#DVM_operation_type_register"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.optypes.DVM_operation_type_register" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register a new type in the <cite>optypes</cite> list</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="daffy.vm.optypes.OperationTypeNotFoundError">
+<em class="property">exception </em><tt class="descclassname">daffy.vm.optypes.</tt><tt class="descname">OperationTypeNotFoundError</tt><a class="reference internal" href="_modules/daffy/vm/optypes.html#OperationTypeNotFoundError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.optypes.OperationTypeNotFoundError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Operation error</p>
 </dd></dl>
 
 </div>
@@ -84,14 +83,14 @@ $name: optype([$opname.attr | &lt;float value&gt;], ...)</p>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
   <h4>Previous topic</h4>
-  <p class="topless"><a href="index.html"
-                        title="previous chapter">Welcome to Daffy&#8217;s documentation!</a></p>
+  <p class="topless"><a href="parser.html"
+                        title="previous chapter">Parser</a></p>
   <h4>Next topic</h4>
-  <p class="topless"><a href="optypes.html"
-                        title="next chapter">Operation Types</a></p>
+  <p class="topless"><a href="operations.html"
+                        title="next chapter">Daffy operations</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
-    <li><a href="_sources/parser.txt"
+    <li><a href="_sources/optypes.txt"
            rel="nofollow">Show Source</a></li>
   </ul>
 <div id="searchbox" style="display: none">
@@ -121,10 +120,10 @@ $name: optype([$opname.attr | &lt;float value&gt;], ...)</p>
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="optypes.html" title="Operation Types"
+          <a href="operations.html" title="Daffy operations"
              >next</a> |</li>
         <li class="right" >
-          <a href="index.html" title="Welcome to Daffy’s documentation!"
+          <a href="parser.html" title="Parser"
              >previous</a> |</li>
         <li><a href="index.html">Daffy v0.1dev documentation</a> &raquo;</li> 
       </ul>

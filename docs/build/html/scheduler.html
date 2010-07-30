@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Scheduler &mdash; Daffy v0.1dev documentation</title>
+    <title>scheduler — Keeping track of operations and dependecies. &mdash; Daffy v0.1dev documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
@@ -51,30 +51,220 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="module-daffy.vm.scheduler">
-<span id="scheduler"></span><h1>Scheduler<a class="headerlink" href="#module-daffy.vm.scheduler" title="Permalink to this headline">¶</a></h1>
-<p>Scheduler module</p>
+  <div class="section" id="module-scheduler">
+<span id="scheduler-keeping-track-of-operations-and-dependecies"></span><h1><a class="reference internal" href="#module-scheduler" title="Keeping track of operations and their dependency relations."><tt class="xref py py-mod docutils literal"><span class="pre">scheduler</span></tt></a> &#8212; Keeping track of operations and dependecies.<a class="headerlink" href="#module-scheduler" title="Permalink to this headline">¶</a></h1>
+<span class="target" id="module-daffy.vm.scheduler"></span><p>The <a class="reference internal" href="#daffy.vm.scheduler.Scheduler" title="daffy.vm.scheduler.Scheduler"><tt class="xref py py-class docutils literal"><span class="pre">Scheduler</span></tt></a> keeps track of operations and their dependency
+relations.</p>
+<p>Each operation in the table maintains a <tt class="xref py py-attr docutils literal"><span class="pre">Operation.waiting_on</span></tt> counter of
+its missing requirements (how many of its inputs are connected to operations
+that have not been executed yet), and a <tt class="xref py py-attr docutils literal"><span class="pre">Operation.blocking</span></tt> list of all
+other operations that are waiting for its outputs to be ready.</p>
+<p>When the <a class="reference internal" href="#daffy.vm.scheduler.Scheduler" title="daffy.vm.scheduler.Scheduler"><tt class="xref py py-class docutils literal"><span class="pre">Scheduler</span></tt></a> is fed with an operation definition, it creates the
+corresponding <tt class="xref py py-class docutils literal"><span class="pre">Operation</span></tt> object, appends it to the table and, if all
+of its requirements are ready (that is: if all the operations connected to its
+inputs have already been executed), appends it to the
+<a class="reference internal" href="#daffy.vm.scheduler.Scheduler.runnable_queue" title="daffy.vm.scheduler.Scheduler.runnable_queue"><tt class="xref py py-attr docutils literal"><span class="pre">Scheduler.runnable_queue</span></tt></a>.</p>
+<p><a class="reference internal" href="#daffy.vm.scheduler.Worker" title="daffy.vm.scheduler.Worker"><tt class="xref py py-class docutils literal"><span class="pre">Worker</span></tt></a> threads pick operations from <a class="reference internal" href="#daffy.vm.scheduler.Scheduler.runnable_queue" title="daffy.vm.scheduler.Scheduler.runnable_queue"><tt class="xref py py-attr docutils literal"><span class="pre">Scheduler.runnable_queue</span></tt></a>,
+execute them in parallel (as each runnable operation reads its inputs from
+operations that have already been written to the table, there is no possible
+racing on the values) and put them in the <a class="reference internal" href="#daffy.vm.scheduler.Scheduler.finished_queue" title="daffy.vm.scheduler.Scheduler.finished_queue"><tt class="xref py py-attr docutils literal"><span class="pre">Scheduler.finished_queue</span></tt></a> when
+done.</p>
+<p>The <a class="reference internal" href="#daffy.vm.scheduler.Updater" title="daffy.vm.scheduler.Updater"><tt class="xref py py-class docutils literal"><span class="pre">Updater</span></tt></a> thread picks operation from
+<a class="reference internal" href="#daffy.vm.scheduler.Scheduler.finished_queue" title="daffy.vm.scheduler.Scheduler.finished_queue"><tt class="xref py py-attr docutils literal"><span class="pre">Scheduler.finished_queue</span></tt></a>, notifies all operations waiting or it that
+the output vaues are ready to use decreasing their <tt class="xref py py-attr docutils literal"><span class="pre">Scheduler.waiting_on</span></tt>
+counter and removing the finished operation from their
+<tt class="xref py py-attr docutils literal"><span class="pre">Operation.blocking</span></tt> list</p>
+<p>The thread syncronization mechanism works like this:</p>
+<div class="highlight-python"><pre>the scheduler is fed with operations
+             |
+             v
+`DVM_scheduler_operation_add`
+calls `op_append_to_table`
+             |
+             v
+if the operation must go through the
+execution engine a `token` is appended
+to the `waiting_counter` queue and the ------------------+
+opertaion itself is appended to                          |
+`runnable_queue` if all of its                           v
+requirements are ready                         `worker` threads pick
+             |                                 operations from the
+             v                                 `runnable_queue`, execute
+when all operations has been fed to the        them and append them to
+scheduler `DVM_scheduler_wait` is called       `finished_queue`
+At this point there is a token in                        |
+`waiting counter` for each operation that                v
+needs execution, so `DVM_scheduler_wait`     the `updater` thread waits  
+just waits for `waiting_counter` to be       for `tokens` to be put in
+empty                                        `waiting_counter`.
+             |                               When it gets a `token`,
+             |                               `updater` knows that there
+             |                               is an operation in the
+             |                               execution engine, so waits
+             |                               for it on `finished_queue`,
+             |                               notify its dependencies,
+             |                               and refresh the scheduler.
+             |                               Then removes a `token` from
+             |                               `waiting_counter`
+             |                                         |
+             +-----------------------------------------+
+             |
+             v
+`DVM_scheduler_wait` returns</pre>
+</div>
+<div class="section" id="scheduler-object">
+<h2>Scheduler Object<a class="headerlink" href="#scheduler-object" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="daffy.vm.scheduler.Scheduler">
+<em class="property">class </em><tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">Scheduler</tt><big>(</big><em>loglevel=0</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#Scheduler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.Scheduler" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <a class="reference internal" href="#daffy.vm.scheduler.Scheduler" title="daffy.vm.scheduler.Scheduler"><tt class="xref py py-class docutils literal"><span class="pre">Scheduler</span></tt></a> object keeps a table of all operations and various
+queues for thread syncronization</p>
+<div class="admonition-see-also admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><a class="reference internal" href="#module-scheduler" title="Keeping track of operations and their dependency relations."><tt class="xref py py-mod docutils literal"><span class="pre">scheduler</span></tt></a> for a detailed description</p>
+</div>
+<dl class="attribute">
+<dt id="daffy.vm.scheduler.Scheduler.opstable">
+<tt class="descname">opstable</tt><a class="headerlink" href="#daffy.vm.scheduler.Scheduler.opstable" title="Permalink to this definition">¶</a></dt>
+<dd><p>this is the <a class="reference internal" href="#daffy.vm.scheduler.Scheduler" title="daffy.vm.scheduler.Scheduler"><tt class="xref py py-class docutils literal"><span class="pre">Scheduler</span></tt></a>&#8216;s main data structure, a list of all
+operations fed to it</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="daffy.vm.scheduler.Scheduler.waiting_counter">
+<tt class="descname">waiting_counter</tt><a class="headerlink" href="#daffy.vm.scheduler.Scheduler.waiting_counter" title="Permalink to this definition">¶</a></dt>
+<dd><p>counter used by <a class="reference internal" href="#daffy.vm.scheduler.DVM_scheduler_wait" title="daffy.vm.scheduler.DVM_scheduler_wait"><tt class="xref py py-func docutils literal"><span class="pre">DVM_scheduler_wait()</span></tt></a> for thread syncronization</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="daffy.vm.scheduler.Scheduler.runnable_queue">
+<tt class="descname">runnable_queue</tt><a class="headerlink" href="#daffy.vm.scheduler.Scheduler.runnable_queue" title="Permalink to this definition">¶</a></dt>
+<dd><p>queue of operations that can be executed immediatly, as all their
+requirements are ready</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="daffy.vm.scheduler.Scheduler.finished_queue">
+<tt class="descname">finished_queue</tt><a class="headerlink" href="#daffy.vm.scheduler.Scheduler.finished_queue" title="Permalink to this definition">¶</a></dt>
+<dd><p>queue of operations already executed by a <a class="reference internal" href="#daffy.vm.scheduler.Worker" title="daffy.vm.scheduler.Worker"><tt class="xref py py-class docutils literal"><span class="pre">Worker</span></tt></a> thread and
+ready to be updated by the <a class="reference internal" href="#daffy.vm.scheduler.Updater" title="daffy.vm.scheduler.Updater"><tt class="xref py py-class docutils literal"><span class="pre">Updater</span></tt></a> thread</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="scheduler-threads">
+<h2>Scheduler Threads<a class="headerlink" href="#scheduler-threads" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="daffy.vm.scheduler.Worker">
+<em class="property">class </em><tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">Worker</tt><big>(</big><em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#Worker"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.Worker" title="Permalink to this definition">¶</a></dt>
+<dd><p>A worker thread that execute operations from the
+<a class="reference internal" href="#daffy.vm.scheduler.Scheduler.runnable_queue" title="daffy.vm.scheduler.Scheduler.runnable_queue"><tt class="xref py py-attr docutils literal"><span class="pre">Scheduler.runnable_queue</span></tt></a> of a given <a class="reference internal" href="#daffy.vm.scheduler.Scheduler" title="daffy.vm.scheduler.Scheduler"><tt class="xref py py-class docutils literal"><span class="pre">Scheduler</span></tt></a> object</p>
+<dl class="attribute">
+<dt id="daffy.vm.scheduler.Worker.scheduler">
+<tt class="descname">scheduler</tt><a class="headerlink" href="#daffy.vm.scheduler.Worker.scheduler" title="Permalink to this definition">¶</a></dt>
+<dd><p>the <a class="reference internal" href="#daffy.vm.scheduler.Scheduler" title="daffy.vm.scheduler.Scheduler"><tt class="xref py py-class docutils literal"><span class="pre">Scheduler</span></tt></a> object this thread belongs to</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="daffy.vm.scheduler.Updater">
+<em class="property">class </em><tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">Updater</tt><big>(</big><em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#Updater"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.Updater" title="Permalink to this definition">¶</a></dt>
+<dd><p>A coordination thread that updates dependencies once an
+<tt class="xref py py-class docutils literal"><span class="pre">Operation</span></tt> has finished</p>
+<dl class="attribute">
+<dt id="daffy.vm.scheduler.Updater.scheduler">
+<tt class="descname">scheduler</tt><a class="headerlink" href="#daffy.vm.scheduler.Updater.scheduler" title="Permalink to this definition">¶</a></dt>
+<dd><p>the <a class="reference internal" href="#daffy.vm.scheduler.Scheduler" title="daffy.vm.scheduler.Scheduler"><tt class="xref py py-class docutils literal"><span class="pre">Scheduler</span></tt></a> object this thread belongs to</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="api-functions">
+<h2>API functions<a class="headerlink" href="#api-functions" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="daffy.vm.scheduler.DVM_scheduler_operation_add">
 <tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">DVM_scheduler_operation_add</tt><big>(</big><em>type</em>, <em>name</em>, <em>args</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#DVM_scheduler_operation_add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.DVM_scheduler_operation_add" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create an operation, resolve its dependencies and add it to the
-scheduler&#8217;s <cite>opstable</cite> (and to the <cite>runnables</cite> queue if all of its
-dependencies are ready)</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="daffy.vm.scheduler.DVM_scheduler_operation_find">
-<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">DVM_scheduler_operation_find</tt><big>(</big><em>name</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#DVM_scheduler_operation_find"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.DVM_scheduler_operation_find" title="Permalink to this definition">¶</a></dt>
-<dd><p>Find and operation by name in the scheduler&#8217;s <cite>opstable</cite></p>
+<dd><p>Create an <tt class="xref py py-class docutils literal"><span class="pre">Operation</span></tt> object, resolve its requirements and add it
+to the <a class="reference internal" href="#daffy.vm.scheduler.Scheduler.opstable" title="daffy.vm.scheduler.Scheduler.opstable"><tt class="xref py py-attr docutils literal"><span class="pre">Scheduler.opstable</span></tt></a></p>
+<p>If all of its requirements are ready, append the operation to the
+<a class="reference internal" href="#daffy.vm.scheduler.Scheduler.runnable_queue" title="daffy.vm.scheduler.Scheduler.runnable_queue"><tt class="xref py py-attr docutils literal"><span class="pre">Scheduler.runnable_queue</span></tt></a> straight away, otherwise it will be
+scheduled as runnable by the <a class="reference internal" href="#daffy.vm.scheduler.Updater" title="daffy.vm.scheduler.Updater"><tt class="xref py py-class docutils literal"><span class="pre">Updater</span></tt></a> thread with
+<a class="reference internal" href="#daffy.vm.scheduler.DVM_scheduler_refresh" title="daffy.vm.scheduler.DVM_scheduler_refresh"><tt class="xref py py-func docutils literal"><span class="pre">DVM_scheduler_refresh()</span></tt></a></p>
 </dd></dl>
 
 <dl class="function">
 <dt id="daffy.vm.scheduler.DVM_scheduler_refresh">
-<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">DVM_scheduler_refresh</tt><big>(</big><em>scheduler</em><big>)</big><a class="headerlink" href="#daffy.vm.scheduler.DVM_scheduler_refresh" title="Permalink to this definition">¶</a></dt>
-<dd><p>Find which operations in the scheduler&#8217;s <cite>opstable</cite> can be run and puts
-them in the <cite>runnables</cite> queue</p>
+<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">DVM_scheduler_refresh</tt><big>(</big><em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#DVM_scheduler_refresh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.DVM_scheduler_refresh" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find which operations in the <a class="reference internal" href="#daffy.vm.scheduler.Scheduler.opstable" title="daffy.vm.scheduler.Scheduler.opstable"><tt class="xref py py-attr docutils literal"><span class="pre">Scheduler.opstable</span></tt></a> can be run and
+append them to the <a class="reference internal" href="#daffy.vm.scheduler.Scheduler.runnable_queue" title="daffy.vm.scheduler.Scheduler.runnable_queue"><tt class="xref py py-attr docutils literal"><span class="pre">Scheduler.runnable_queue</span></tt></a></p>
 </dd></dl>
 
+<dl class="function">
+<dt id="daffy.vm.scheduler.DVM_scheduler_wait">
+<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">DVM_scheduler_wait</tt><big>(</big><em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#DVM_scheduler_wait"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.DVM_scheduler_wait" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for all operations to execute joining the scheduler&#8217;s
+<tt class="docutils literal"><span class="pre">waiting_counter</span></tt> queue</p>
+<div class="admonition-see-also admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><a class="reference internal" href="#module-scheduler" title="Keeping track of operations and their dependency relations."><tt class="xref py py-mod docutils literal"><span class="pre">scheduler</span></tt></a> for a detaild description of thread syncronization</p>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="internal-functions">
+<h2>Internal functions<a class="headerlink" href="#internal-functions" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="daffy.vm.scheduler.op_name_exists">
+<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">op_name_exists</tt><big>(</big><em>name</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#op_name_exists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.op_name_exists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if a name is already used in the <a class="reference internal" href="#daffy.vm.scheduler.Scheduler.opstable" title="daffy.vm.scheduler.Scheduler.opstable"><tt class="xref py py-attr docutils literal"><span class="pre">Scheduler.opstable</span></tt></a></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="daffy.vm.scheduler.op_get">
+<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">op_get</tt><big>(</big><em>name</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#op_get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.op_get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find and operation by name in the <a class="reference internal" href="#daffy.vm.scheduler.Scheduler.opstable" title="daffy.vm.scheduler.Scheduler.opstable"><tt class="xref py py-attr docutils literal"><span class="pre">Scheduler.opstable</span></tt></a></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="daffy.vm.scheduler.op_is_runnable">
+<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">op_is_runnable</tt><big>(</big><em>op</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#op_is_runnable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.op_is_runnable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if an <tt class="xref py py-class docutils literal"><span class="pre">Operation</span></tt> object is runnable verifing its counter of
+missing requirements</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="daffy.vm.scheduler.op_append_to_table">
+<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">op_append_to_table</tt><big>(</big><em>op</em>, <em>scheduler</em>, <em>waiting=True</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#op_append_to_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.op_append_to_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Append an <tt class="xref py py-class docutils literal"><span class="pre">Operation</span></tt> object to the <a class="reference internal" href="#daffy.vm.scheduler.Scheduler.opstable" title="daffy.vm.scheduler.Scheduler.opstable"><tt class="xref py py-attr docutils literal"><span class="pre">Scheduler.opstable</span></tt></a></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="daffy.vm.scheduler.op_requirements_set">
+<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">op_requirements_set</tt><big>(</big><em>op</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#op_requirements_set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.op_requirements_set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loop over an <tt class="xref py py-class docutils literal"><span class="pre">Operation</span></tt> object inputs and set its requirements</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="daffy.vm.scheduler.op_set_as_runnable">
+<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">op_set_as_runnable</tt><big>(</big><em>op</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#op_set_as_runnable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.op_set_as_runnable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Append the operations to the <a class="reference internal" href="#daffy.vm.scheduler.Scheduler.runnable_queue" title="daffy.vm.scheduler.Scheduler.runnable_queue"><tt class="xref py py-attr docutils literal"><span class="pre">Scheduler.runnable_queue</span></tt></a>.
+<a class="reference internal" href="#daffy.vm.scheduler.Worker" title="daffy.vm.scheduler.Worker"><tt class="xref py py-class docutils literal"><span class="pre">Worker</span></tt></a> threads will pick operations from this queue and execute
+them</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="daffy.vm.scheduler.op_set_as_finished">
+<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">op_set_as_finished</tt><big>(</big><em>op</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#op_set_as_finished"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.op_set_as_finished" title="Permalink to this definition">¶</a></dt>
+<dd><p>Notify other operations depending on this one that it has finished
+executing and its ouputs are ready for use</p>
+</dd></dl>
+
+</div>
+<div class="section" id="exceptions">
+<h2>Exceptions<a class="headerlink" href="#exceptions" title="Permalink to this headline">¶</a></h2>
 <dl class="exception">
 <dt id="daffy.vm.scheduler.DependencyError">
 <em class="property">exception </em><tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">DependencyError</tt><a class="reference internal" href="_modules/daffy/vm/scheduler.html#DependencyError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.DependencyError" title="Permalink to this definition">¶</a></dt>
@@ -82,36 +272,15 @@ them in the <cite>runnables</cite> queue</p>
 </dd></dl>
 
 <dl class="exception">
-<dt id="daffy.vm.scheduler.OperationAlreadyExistsError">
-<em class="property">exception </em><tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">OperationAlreadyExistsError</tt><a class="reference internal" href="_modules/daffy/vm/scheduler.html#OperationAlreadyExistsError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.OperationAlreadyExistsError" title="Permalink to this definition">¶</a></dt>
-<dd><p>The operation name already exists in the scheduler table</p>
+<dt id="daffy.vm.scheduler.OperationNotFoundError">
+<em class="property">exception </em><tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">OperationNotFoundError</tt><a class="reference internal" href="_modules/daffy/vm/scheduler.html#OperationNotFoundError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.OperationNotFoundError" title="Permalink to this definition">¶</a></dt>
+<dd><p>The operation was not found in the <a class="reference internal" href="#daffy.vm.scheduler.Scheduler.opstable" title="daffy.vm.scheduler.Scheduler.opstable"><tt class="xref py py-attr docutils literal"><span class="pre">Scheduler.opstable</span></tt></a></p>
 </dd></dl>
 
 <dl class="exception">
-<dt id="daffy.vm.scheduler.OperationNotFoundError">
-<em class="property">exception </em><tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">OperationNotFoundError</tt><a class="reference internal" href="_modules/daffy/vm/scheduler.html#OperationNotFoundError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.OperationNotFoundError" title="Permalink to this definition">¶</a></dt>
-<dd><p>The operation was not found in the scheduler table</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="daffy.vm.scheduler.Scheduler">
-<em class="property">class </em><tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">Scheduler</tt><big>(</big><em>loglevel=0</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#Scheduler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.Scheduler" title="Permalink to this definition">¶</a></dt>
-<dd><p>A <cite>Scheduler</cite> object keeps a table of all operations and a queue of
-operations that can be run, as all their dependancies are ready</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="daffy.vm.scheduler.Updater">
-<em class="property">class </em><tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">Updater</tt><big>(</big><em>scheduler</em><big>)</big><a class="headerlink" href="#daffy.vm.scheduler.Updater" title="Permalink to this definition">¶</a></dt>
-<dd><p>A coordination thread that updates dependencies once an operation has
-finished</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="daffy.vm.scheduler.Worker">
-<em class="property">class </em><tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">Worker</tt><big>(</big><em>scheduler</em><big>)</big><a class="headerlink" href="#daffy.vm.scheduler.Worker" title="Permalink to this definition">¶</a></dt>
-<dd><p>A worker thread that execute operations from the <cite>runnables</cite> queue of
-a give scheduler</p>
+<dt id="daffy.vm.scheduler.OperationAlreadyExistsError">
+<em class="property">exception </em><tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">OperationAlreadyExistsError</tt><a class="reference internal" href="_modules/daffy/vm/scheduler.html#OperationAlreadyExistsError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.OperationAlreadyExistsError" title="Permalink to this definition">¶</a></dt>
+<dd><p>The operation name already exists in the <a class="reference internal" href="#daffy.vm.scheduler.Scheduler.opstable" title="daffy.vm.scheduler.Scheduler.opstable"><tt class="xref py py-attr docutils literal"><span class="pre">Scheduler.opstable</span></tt></a></p>
 </dd></dl>
 
 <dl class="exception">
@@ -120,24 +289,7 @@ a give scheduler</p>
 <dd><p>Wrong argument in operation creation</p>
 </dd></dl>
 
-<dl class="function">
-<dt id="daffy.vm.scheduler.op_is_runnable">
-<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">op_is_runnable</tt><big>(</big><em>op</em>, <em>scheduler</em><big>)</big><a class="headerlink" href="#daffy.vm.scheduler.op_is_runnable" title="Permalink to this definition">¶</a></dt>
-<dd><p>Check if an operation is runnable</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="daffy.vm.scheduler.op_requirements_set">
-<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">op_requirements_set</tt><big>(</big><em>op</em>, <em>scheduler</em><big>)</big><a class="headerlink" href="#daffy.vm.scheduler.op_requirements_set" title="Permalink to this definition">¶</a></dt>
-<dd><p>Loop over an operation inputs and set its requirements</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="daffy.vm.scheduler.op_set_as_finished">
-<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">op_set_as_finished</tt><big>(</big><em>op</em>, <em>scheduler</em><big>)</big><a class="headerlink" href="#daffy.vm.scheduler.op_set_as_finished" title="Permalink to this definition">¶</a></dt>
-<dd><p>Notify operations depending on <cite>op</cite> that its ouputs are ready</p>
-</dd></dl>
-
+</div>
 </div>
 
 
@@ -146,6 +298,18 @@ a give scheduler</p>
       </div>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#"><tt class="docutils literal"><span class="pre">scheduler</span></tt> &#8212; Keeping track of operations and dependecies.</a><ul>
+<li><a class="reference internal" href="#scheduler-object">Scheduler Object</a></li>
+<li><a class="reference internal" href="#scheduler-threads">Scheduler Threads</a></li>
+<li><a class="reference internal" href="#api-functions">API functions</a></li>
+<li><a class="reference internal" href="#internal-functions">Internal functions</a></li>
+<li><a class="reference internal" href="#exceptions">Exceptions</a></li>
+</ul>
+</li>
+</ul>
+
   <h4>Previous topic</h4>
   <p class="topless"><a href="interpreter.html"
                         title="previous chapter">Interpreter</a></p>

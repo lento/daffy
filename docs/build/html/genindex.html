@@ -47,7 +47,7 @@
    <h1 id="index">Index</h1>
 
    <div class="genindex-jumpbox">
-   <a href="#D"><strong>D</strong></a> | <a href="#O"><strong>O</strong></a> | <a href="#P"><strong>P</strong></a> | <a href="#S"><strong>S</strong></a> | <a href="#U"><strong>U</strong></a> | <a href="#W"><strong>W</strong></a> 
+   <a href="#D"><strong>D</strong></a> | <a href="#F"><strong>F</strong></a> | <a href="#O"><strong>O</strong></a> | <a href="#P"><strong>P</strong></a> | <a href="#R"><strong>R</strong></a> | <a href="#S"><strong>S</strong></a> | <a href="#U"><strong>U</strong></a> | <a href="#W"><strong>W</strong></a> 
    </div>
 <h2 id="D">D</h2>
 <table width="100%" class="indextable genindextable"><tr>
@@ -70,22 +70,34 @@
     <dt><a href="optypes.html#daffy.vm.optypes.DVM_operation_type_register">DVM_operation_type_register() (in module daffy.vm.optypes)</a></dt>
     <dt><a href="interpreter.html#daffy.vm.interpreter.DVM_program_run">DVM_program_run() (in module daffy.vm.interpreter)</a></dt>
     <dt><a href="scheduler.html#daffy.vm.scheduler.DVM_scheduler_operation_add">DVM_scheduler_operation_add() (in module daffy.vm.scheduler)</a></dt>
-    <dt><a href="scheduler.html#daffy.vm.scheduler.DVM_scheduler_operation_find">DVM_scheduler_operation_find() (in module daffy.vm.scheduler)</a></dt>
     <dt><a href="scheduler.html#daffy.vm.scheduler.DVM_scheduler_refresh">DVM_scheduler_refresh() (in module daffy.vm.scheduler)</a></dt>
+    <dt><a href="scheduler.html#daffy.vm.scheduler.DVM_scheduler_wait">DVM_scheduler_wait() (in module daffy.vm.scheduler)</a></dt>
+</dl></td>
+</tr></table>
+
+<h2 id="F">F</h2>
+<table width="100%" class="indextable genindextable"><tr>
+  <td width="33%" valign="top"><dl>
+    <dt><a href="scheduler.html#daffy.vm.scheduler.Scheduler.finished_queue">finished_queue (daffy.vm.scheduler.Scheduler attribute)</a></dt>
 </dl></td>
 </tr></table>
 
 <h2 id="O">O</h2>
 <table width="100%" class="indextable genindextable"><tr>
   <td width="33%" valign="top"><dl>
+    <dt><a href="scheduler.html#daffy.vm.scheduler.op_append_to_table">op_append_to_table() (in module daffy.vm.scheduler)</a></dt>
+    <dt><a href="scheduler.html#daffy.vm.scheduler.op_get">op_get() (in module daffy.vm.scheduler)</a></dt>
     <dt><a href="scheduler.html#daffy.vm.scheduler.op_is_runnable">op_is_runnable() (in module daffy.vm.scheduler)</a></dt>
+    <dt><a href="scheduler.html#daffy.vm.scheduler.op_name_exists">op_name_exists() (in module daffy.vm.scheduler)</a></dt>
     <dt><a href="scheduler.html#daffy.vm.scheduler.op_requirements_set">op_requirements_set() (in module daffy.vm.scheduler)</a></dt>
     <dt><a href="scheduler.html#daffy.vm.scheduler.op_set_as_finished">op_set_as_finished() (in module daffy.vm.scheduler)</a></dt>
 </dl></td>
   <td width="33%" valign="top"><dl>
+    <dt><a href="scheduler.html#daffy.vm.scheduler.op_set_as_runnable">op_set_as_runnable() (in module daffy.vm.scheduler)</a></dt>
     <dt><a href="scheduler.html#daffy.vm.scheduler.OperationAlreadyExistsError">OperationAlreadyExistsError</a></dt>
     <dt><a href="scheduler.html#daffy.vm.scheduler.OperationNotFoundError">OperationNotFoundError</a></dt>
     <dt><a href="optypes.html#daffy.vm.optypes.OperationTypeNotFoundError">OperationTypeNotFoundError</a></dt>
+    <dt><a href="scheduler.html#daffy.vm.scheduler.Scheduler.opstable">opstable (daffy.vm.scheduler.Scheduler attribute)</a></dt>
 </dl></td>
 </tr></table>
 
@@ -99,10 +111,24 @@
 </dl></td>
 </tr></table>
 
+<h2 id="R">R</h2>
+<table width="100%" class="indextable genindextable"><tr>
+  <td width="33%" valign="top"><dl>
+    <dt><a href="scheduler.html#daffy.vm.scheduler.Scheduler.runnable_queue">runnable_queue (daffy.vm.scheduler.Scheduler attribute)</a></dt>
+</dl></td>
+</tr></table>
+
 <h2 id="S">S</h2>
 <table width="100%" class="indextable genindextable"><tr>
   <td width="33%" valign="top"><dl>
     <dt><a href="scheduler.html#daffy.vm.scheduler.Scheduler">Scheduler (class in daffy.vm.scheduler)</a></dt>
+</dl></td>
+  <td width="33%" valign="top"><dl>
+    <dt><a href="scheduler.html#daffy.vm.scheduler.Updater.scheduler">scheduler (daffy.vm.scheduler.Updater attribute)</a></dt>
+    <dd><dl>
+      <dt><a href="scheduler.html#daffy.vm.scheduler.Worker.scheduler">(daffy.vm.scheduler.Worker attribute)</a></dt>
+      <dt><a href="scheduler.html#module-scheduler">(module)</a></dt>
+  </dl></dd>
 </dl></td>
 </tr></table>
 
@@ -116,6 +142,7 @@
 <h2 id="W">W</h2>
 <table width="100%" class="indextable genindextable"><tr>
   <td width="33%" valign="top"><dl>
+    <dt><a href="scheduler.html#daffy.vm.scheduler.Scheduler.waiting_counter">waiting_counter (daffy.vm.scheduler.Scheduler attribute)</a></dt>
     <dt><a href="scheduler.html#daffy.vm.scheduler.Worker">Worker (class in daffy.vm.scheduler)</a></dt>
 </dl></td>
   <td width="33%" valign="top"><dl>

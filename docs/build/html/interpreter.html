@@ -23,7 +23,7 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="Daffy v0.1dev documentation" href="index.html" />
-    <link rel="next" title="Scheduler" href="scheduler.html" />
+    <link rel="next" title="scheduler — Keeping track of operations and dependecies." href="scheduler.html" />
     <link rel="prev" title="Welcome to Daffy’s documentation!" href="index.html" /> 
   </head>
   <body>
@@ -37,7 +37,7 @@
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="scheduler.html" title="Scheduler"
+          <a href="scheduler.html" title="scheduler — Keeping track of operations and dependecies."
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="index.html" title="Welcome to Daffy’s documentation!"
@@ -58,25 +58,6 @@
 The interpreter expects lines in the form:</p>
 <div class="highlight-python"><pre>$name: optype([argname=$target.attr | &lt;float value&gt;], ...)</pre>
 </div>
-<dl class="function">
-<dt id="daffy.vm.interpreter.DVM_instruction_run">
-<tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">DVM_instruction_run</tt><big>(</big><em>instruction</em>, <em>scheduler</em><big>)</big><a class="headerlink" href="#daffy.vm.interpreter.DVM_instruction_run" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parse an instruction and schedule the resulting operation for
-execution</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="daffy.vm.interpreter.DVM_line_parse">
-<tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">DVM_line_parse</tt><big>(</big><em>line</em><big>)</big><a class="headerlink" href="#daffy.vm.interpreter.DVM_line_parse" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parse a line of input</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="daffy.vm.interpreter.DVM_program_run">
-<tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">DVM_program_run</tt><big>(</big><em>program</em>, <em>scheduler</em><big>)</big><a class="headerlink" href="#daffy.vm.interpreter.DVM_program_run" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run a Daffy program</p>
-</dd></dl>
-
 <dl class="exception">
 <dt id="daffy.vm.interpreter.ParserSyntaxError">
 <em class="property">exception </em><tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">ParserSyntaxError</tt><a class="reference internal" href="_modules/daffy/vm/interpreter.html#ParserSyntaxError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.interpreter.ParserSyntaxError" title="Permalink to this definition">¶</a></dt>
@@ -87,6 +68,25 @@ execution</p>
 <dt id="daffy.vm.interpreter.ParserUndefinedState">
 <em class="property">exception </em><tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">ParserUndefinedState</tt><a class="reference internal" href="_modules/daffy/vm/interpreter.html#ParserUndefinedState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.interpreter.ParserUndefinedState" title="Permalink to this definition">¶</a></dt>
 <dd><p>The parser reached an undefined state</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="daffy.vm.interpreter.DVM_line_parse">
+<tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">DVM_line_parse</tt><big>(</big><em>line</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/interpreter.html#DVM_line_parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.interpreter.DVM_line_parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse a line of input</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="daffy.vm.interpreter.DVM_instruction_run">
+<tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">DVM_instruction_run</tt><big>(</big><em>instruction</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/interpreter.html#DVM_instruction_run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.interpreter.DVM_instruction_run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse an instruction and schedule the resulting operation for
+execution</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="daffy.vm.interpreter.DVM_program_run">
+<tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">DVM_program_run</tt><big>(</big><em>program</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/interpreter.html#DVM_program_run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.interpreter.DVM_program_run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run a Daffy program</p>
 </dd></dl>
 
 </div>
@@ -102,7 +102,7 @@ execution</p>
                         title="previous chapter">Welcome to Daffy&#8217;s documentation!</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="scheduler.html"
-                        title="next chapter">Scheduler</a></p>
+                        title="next chapter"><tt class="docutils literal"><span class="pre">scheduler</span></tt> &#8212; Keeping track of operations and dependecies.</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/interpreter.txt"
@@ -135,7 +135,7 @@ execution</p>
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="scheduler.html" title="Scheduler"
+          <a href="scheduler.html" title="scheduler — Keeping track of operations and dependecies."
              >next</a> |</li>
         <li class="right" >
           <a href="index.html" title="Welcome to Daffy’s documentation!"

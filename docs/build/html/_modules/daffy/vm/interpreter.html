@@ -71,12 +71,12 @@
 <span class="sd">This is a basic interpreter for Daffy assembly code.</span>
 <span class="sd">The interpreter expects lines in the form::</span>
 
-<span class="sd">    $name: optype([argname=$opname.attr | &lt;float value&gt;], ...)</span>
+<span class="sd">    $name: optype([argname=$target.attr | &lt;float value&gt;], ...)</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">from</span> <span class="nn">daffy.vm.optypes</span> <span class="kn">import</span> <span class="n">optypes</span>
-<span class="c">#from daffy.vm.scheduler import DVM_scheduler_operation_add</span>
+<span class="kn">from</span> <span class="nn">daffy.vm.scheduler</span> <span class="kn">import</span> <span class="n">DVM_scheduler_operation_add</span><span class="p">,</span> <span class="n">DVM_scheduler_wait</span>
 
 <span class="c"># Exceptions</span>
 <div class="viewcode-block" id="ParserSyntaxError"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.ParserSyntaxError">[docs]</a><span class="k">class</span> <span class="nc">ParserSyntaxError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
@@ -101,7 +101,7 @@
 <span class="n">ARGS_ATTR</span>   <span class="o">=</span> <span class="mi">10</span>
 <span class="n">ARGS_FLOAT</span>  <span class="o">=</span> <span class="mi">11</span>
 
-<div class="viewcode-block" id="parse_line"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.parse_line">[docs]</a><span class="k">def</span> <span class="nf">parse_line</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+<div class="viewcode-block" id="DVM_line_parse"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.DVM_line_parse">[docs]</a><span class="k">def</span> <span class="nf">DVM_line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Parse a line of input&quot;&quot;&quot;</span>
     <span class="n">state</span> <span class="o">=</span> <span class="n">NEW</span>
     <span class="n">AFTER_COLON</span> <span class="o">=</span> <span class="bp">False</span>
@@ -245,7 +245,8 @@
                 <span class="k">if</span> <span class="n">FLOAT_DECIMAL</span><span class="p">:</span>
                     <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
                     <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting  a digit, &quot;,&quot; or &quot;)&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
-                    <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+                    <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                                                            <span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">arg_float</span> <span class="o">+=</span> <span class="n">c</span>
                     <span class="n">FLOAT_DECIMAL</span> <span class="o">=</span> <span class="bp">True</span>
@@ -258,7 +259,20 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">ParserUndefinedState</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
     
-    <span class="k">print</span><span class="p">(</span><span class="n">optype</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">optype</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span>
+</div>
+<div class="viewcode-block" id="DVM_instruction_run"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.DVM_instruction_run">[docs]</a><span class="k">def</span> <span class="nf">DVM_instruction_run</span><span class="p">(</span><span class="n">instruction</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parse an instruction and schedule the resulting operation for</span>
+<span class="sd">    execution</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">optype</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="n">DVM_line_parse</span><span class="p">(</span><span class="n">instruction</span><span class="p">)</span>
+    <span class="n">DVM_scheduler_operation_add</span><span class="p">(</span><span class="n">optype</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="DVM_program_run"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.DVM_program_run">[docs]</a><span class="k">def</span> <span class="nf">DVM_program_run</span><span class="p">(</span><span class="n">program</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Run a Daffy program&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">instruction</span> <span class="ow">in</span> <span class="n">program</span><span class="p">:</span>
+        <span class="n">DVM_instruction_run</span><span class="p">(</span><span class="n">instruction</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
+    <span class="n">DVM_scheduler_wait</span><span class="p">(</span><span class="n">scheduler</span><span class="p">)</span>
 </pre></div></div>
 
           </div>

@@ -28,7 +28,7 @@ The interpreter expects lines in the form::
 
 import re
 from daffy.vm.optypes import optypes
-from daffy.vm.scheduler import DVM_scheduler_operation_add
+from daffy.vm.scheduler import DVM_scheduler_operation_add, DVM_scheduler_wait
 
 # Exceptions
 class ParserSyntaxError(Exception):
@@ -197,7 +197,8 @@ def DVM_line_parse(line):
                 if FLOAT_DECIMAL:
                     index = '%s^' % ('-' * i)
                     error = 'at char %i: expecting  a digit, "," or ")"' % i
-                    raise ParserSyntaxError('\n%s\n%s\n%s' % (line, index, error))
+                    raise ParserSyntaxError('\n%s\n%s\n%s' % (
+                                                            line, index, error))
                 else:
                     arg_float += c
                     FLOAT_DECIMAL = True
@@ -223,4 +224,6 @@ def DVM_program_run(program, scheduler):
     """Run a Daffy program"""
     for instruction in program:
         DVM_instruction_run(instruction, scheduler)
+    DVM_scheduler_wait(scheduler)
+
 

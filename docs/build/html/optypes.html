@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="Daffy v0.1dev documentation" href="index.html" />
     <link rel="next" title="Daffy operations" href="operations.html" />
-    <link rel="prev" title="Interpreter" href="interpreter.html" /> 
+    <link rel="prev" title="scheduler — Keeping track of operations and dependecies." href="scheduler.html" /> 
   </head>
   <body>
     <div class="related">
@@ -40,7 +40,7 @@
           <a href="operations.html" title="Daffy operations"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="interpreter.html" title="Interpreter"
+          <a href="scheduler.html" title="scheduler — Keeping track of operations and dependecies."
              accesskey="P">previous</a> |</li>
         <li><a href="index.html">Daffy v0.1dev documentation</a> &raquo;</li> 
       </ul>
@@ -56,10 +56,10 @@
 <p>Operation types module</p>
 <p>This module defines the <cite>optypes</cite> list and API functions used to manage
 operation types.</p>
-<dl class="function">
-<dt id="daffy.vm.optypes.DVM_operation_type_find">
-<tt class="descclassname">daffy.vm.optypes.</tt><tt class="descname">DVM_operation_type_find</tt><big>(</big><em>type</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/optypes.html#DVM_operation_type_find"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.optypes.DVM_operation_type_find" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return an optype from the list of registered types</p>
+<dl class="exception">
+<dt id="daffy.vm.optypes.OperationTypeNotFoundError">
+<em class="property">exception </em><tt class="descclassname">daffy.vm.optypes.</tt><tt class="descname">OperationTypeNotFoundError</tt><a class="reference internal" href="_modules/daffy/vm/optypes.html#OperationTypeNotFoundError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.optypes.OperationTypeNotFoundError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Operation error</p>
 </dd></dl>
 
 <dl class="function">
@@ -68,10 +68,10 @@ operation types.</p>
 <dd><p>Register a new type in the <cite>optypes</cite> list</p>
 </dd></dl>
 
-<dl class="exception">
-<dt id="daffy.vm.optypes.OperationTypeNotFoundError">
-<em class="property">exception </em><tt class="descclassname">daffy.vm.optypes.</tt><tt class="descname">OperationTypeNotFoundError</tt><a class="reference internal" href="_modules/daffy/vm/optypes.html#OperationTypeNotFoundError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.optypes.OperationTypeNotFoundError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Operation error</p>
+<dl class="function">
+<dt id="daffy.vm.optypes.DVM_operation_type_find">
+<tt class="descclassname">daffy.vm.optypes.</tt><tt class="descname">DVM_operation_type_find</tt><big>(</big><em>type</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/optypes.html#DVM_operation_type_find"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.optypes.DVM_operation_type_find" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an optype from the list of registered types</p>
 </dd></dl>
 
 </div>
@@ -83,8 +83,8 @@ operation types.</p>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
   <h4>Previous topic</h4>
-  <p class="topless"><a href="interpreter.html"
-                        title="previous chapter">Interpreter</a></p>
+  <p class="topless"><a href="scheduler.html"
+                        title="previous chapter"><tt class="docutils literal docutils literal"><span class="pre">scheduler</span></tt> &#8212; Keeping track of operations and dependecies.</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="operations.html"
                         title="next chapter">Daffy operations</a></p>
@@ -123,7 +123,7 @@ operation types.</p>
           <a href="operations.html" title="Daffy operations"
              >next</a> |</li>
         <li class="right" >
-          <a href="interpreter.html" title="Interpreter"
+          <a href="scheduler.html" title="scheduler — Keeping track of operations and dependecies."
              >previous</a> |</li>
         <li><a href="index.html">Daffy v0.1dev documentation</a> &raquo;</li> 
       </ul>

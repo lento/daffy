@@ -372,7 +372,7 @@
 <div class="viewcode-block" id="DVM_scheduler_refresh"><a class="viewcode-back" href="../../../scheduler.html#daffy.vm.scheduler.DVM_scheduler_refresh">[docs]</a><span class="k">def</span> <span class="nf">DVM_scheduler_refresh</span><span class="p">(</span><span class="n">scheduler</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Find which operations in the :attr:`Scheduler.opstable` can be run and</span>
 <span class="sd">    append them to the :attr:`Scheduler.runnable_queue`&quot;&quot;&quot;</span>
-    <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">scheduler</span><span class="o">.</span><span class="n">operations</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">scheduler</span><span class="o">.</span><span class="n">opstable</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">op</span><span class="o">.</span><span class="n">finished</span> <span class="ow">and</span> <span class="n">op_is_runnable</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
             <span class="n">op_set_as_runnable</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
 </div>

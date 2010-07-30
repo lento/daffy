@@ -14,6 +14,7 @@ Contents:
 .. toctree::
     :maxdepth: 2
 
+    cli
     interpreter
     scheduler
     optypes

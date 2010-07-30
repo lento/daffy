@@ -26,6 +26,10 @@ from daffy.vm.optypes import DVM_operation_type_find
 from daffy.vm.operations import Operation, DVM_operation_exec
 from daffy.vm.ops import DVM_value_create
 
+import sys, logging
+logging.basicConfig(stream=sys.stderr)
+log = logging.getLogger(__name__)
+
 
 # Exceptions
 class DependencyError(Exception):
@@ -59,10 +63,10 @@ class Worker(Thread):
         while True:
             op = self.scheduler.runnables.get()
             if callable(op.typeinfo.execfunc):
-                print('DEBUG: %s executing' % op)
+                log.debug('%s executing' % op)
                 DVM_operation_exec(op)
             else:
-                print('DEBUG: %s doesn\'t need to be executed' % op)
+                log.debug('%s doesn\'t need to be executed' % op)
             self.scheduler.finished.put(op)
             self.scheduler.runnables.task_done()
 
@@ -78,7 +82,7 @@ class Updater(Thread):
     def run(self):
         while True:
             op = self.scheduler.finished.get()
-            print('DEBUG: %s updating dependencies' % op)
+            log.debug('%s updating dependencies' % op)
             op_set_as_finished(op, self.scheduler)
             DVM_scheduler_refresh(self.scheduler)
             self.scheduler.finished.task_done()
@@ -88,21 +92,26 @@ class Updater(Thread):
 class Scheduler(object):
     """A `Scheduler` object keeps a table of all operations and a queue of
     operations that can be run, as all their dependancies are ready"""
-    def __init__(self):
+    def __init__(self, loglevel=logging.NOTSET):
+        log.level = loglevel
         self.operations = []
         self.runnables = Queue()
         self.finished = Queue()
-        u = Updater(self)
-        u.daemon = True
-        u.start()
+
+        self.updater = Updater(self)
+        self.updater.daemon = True
+        self.updater.start()
+
+        self.workers = []
         for i in range(THREADS):
-             t = Worker(self)
-             t.daemon = True
-             t.start()
+             w = Worker(self)
+             w.daemon = True
+             self.workers.append(w)
+             w.start()
 
 
 def scheduler_operation_run(op, scheduler):
-    print('DEBUG: %s adding operation to runnables queue' % op)
+    log.debug('%s adding operation to runnables queue' % op)
     scheduler.runnables.put(op)
 
 def op_name_exists(name, scheduler):
@@ -153,14 +162,14 @@ def DVM_scheduler_operation_add(type, name, args, scheduler):
         raise OperationAlreadyExistsError(name)
 
     inputs = []
-    
+
     if type == 'value':
         if len(args) == 1 and len(args[0]) == 2:
             arg_name, value = args[0]
             if isinstance(value, float):
                 op = DVM_value_create(name, value)
                 op.finished = True  # don't need to go through the engine
-                print('DEBUG: %s add to opstable' % op)
+                log.debug('%s add to opstable' % op)
                 scheduler.operations.append(op)
             else:
                 raise WrongArgumentError(value)
@@ -184,16 +193,11 @@ def DVM_scheduler_operation_add(type, name, args, scheduler):
                 raise WrongArgumentError(arg)
 
         op = Operation(optype, name, inputs)
-        print('DEBUG: %s add to opstable' % op)
+        log.debug('%s add to opstable' % op)
         scheduler.operations.append(op)
         op_requirements_set(op, scheduler)
         if op_is_runnable(op, scheduler):
             scheduler_operation_run(op, scheduler)
-
-def DVM_scheduler_reset(scheduler):
-    """Reset a scheduler to its initial state"""
-    scheduler.operations = []
-    scheduler.runnables = []
 
 def DVM_scheduler_refresh(scheduler):
     """Find which operations in the scheduler's `opstable` can be run and puts

@@ -159,6 +159,9 @@ def DVM_scheduler_operation_add(type, name, args, scheduler):
             arg_name, value = args[0]
             if isinstance(value, float):
                 op = DVM_value_create(name, value)
+                op.finished = True  # don't need to go through the engine
+                print('DEBUG: %s add to opstable' % op)
+                scheduler.operations.append(op)
             else:
                 raise WrongArgumentError(value)
         else:
@@ -179,13 +182,13 @@ def DVM_scheduler_operation_add(type, name, args, scheduler):
                 inputs.append((arg_name, target, attr))
             else:
                 raise WrongArgumentError(arg)
-        op = Operation(optype, name, inputs)
 
-    scheduler.operations.append(op)
-    runnable = True
-    op_requirements_set(op, scheduler)
-    if op_is_runnable(op, scheduler):
-        scheduler_operation_run(op, scheduler)
+        op = Operation(optype, name, inputs)
+        print('DEBUG: %s add to opstable' % op)
+        scheduler.operations.append(op)
+        op_requirements_set(op, scheduler)
+        if op_is_runnable(op, scheduler):
+            scheduler_operation_run(op, scheduler)
 
 def DVM_scheduler_reset(scheduler):
     """Reset a scheduler to its initial state"""

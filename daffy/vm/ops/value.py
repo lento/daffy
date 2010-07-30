@@ -57,7 +57,6 @@ op = OperationType(
 def DVM_value_create(name, val):
     newval = Operation(op, name)
     newval.outputs[0].value = val
-    newval.finished = True
     return newval
 
 # register the operation

@@ -36,6 +36,7 @@ result : value
 """
 
 from daffy.vm.operations import OperationType, InputSocketType, OutputSocketType
+from daffy.vm.operations import DVM_input_value_get, DVM_output_socket
 from daffy.vm.optypes import DVM_operation_type_register
 
 # inputs and outputs

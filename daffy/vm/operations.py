@@ -57,21 +57,6 @@ class InputSocket(object):
         return '<InputSocket: %s (%s)>' % (self.name, conn)
 
 
-def DVM_input_socket(op, name):
-    for socket in op.inputs:
-        if socket.name == name:
-            return socket
-    raise InputSocketNotFoundError(name)
-
-def DVM_input_value_get(op, name):
-    sock = DVM_input_socket(op, name)
-    if sock.op:
-        source = DVM_output_socket(sock.op, sock.attr)
-        return source.value
-    else:
-        return sock.typeinfo.default
-
-
 # Outputs
 class OutputSocketType(object):
     def __init__(self, name):
@@ -90,13 +75,6 @@ class OutputSocket(object):
 
     def __repr__(self):
         return '<OutputSocket: %s (%s)>' % (self.name, self.value)
-
-
-def DVM_output_socket(op, name):
-    for socket in op.outputs:
-        if socket.name == name:
-            return socket
-    raise OutputSocketNotFoundError(name)
 
 
 # Operations
@@ -122,7 +100,7 @@ class Operation(object):
         self.name = name
         self.waiting_on = 0
         self.blocking = []
-        self.ready = False
+        self.finished = False
         
         self.inputs = []
         for in_type in type.inputs:
@@ -139,4 +117,30 @@ class Operation(object):
         
     def __repr__(self):
         return '<Operation: %s (%s)>' % (self.name, self.typeinfo.name)
+
+
+# API
+def DVM_input_socket(op, name):
+    for socket in op.inputs:
+        if socket.name == name:
+            return socket
+    raise InputSocketNotFoundError(name)
+
+def DVM_input_value_get(op, name):
+    sock = DVM_input_socket(op, name)
+    if sock.op:
+        source = DVM_output_socket(sock.op, sock.attr)
+        return source.value
+    else:
+        return sock.typeinfo.default
+
+def DVM_output_socket(op, name):
+    for socket in op.outputs:
+        if socket.name == name:
+            return socket
+    raise OutputSocketNotFoundError(name)
+
+def DVM_operation_exec(op):
+    """Run the operation `execfunc`"""
+    op.typeinfo.execfunc(op)
 

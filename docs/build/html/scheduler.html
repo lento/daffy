@@ -69,6 +69,13 @@ dependencies are ready)</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="daffy.vm.scheduler.DVM_scheduler_refresh">
+<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">DVM_scheduler_refresh</tt><big>(</big><em>scheduler</em><big>)</big><a class="headerlink" href="#daffy.vm.scheduler.DVM_scheduler_refresh" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find which operations in the scheduler&#8217;s <cite>opstable</cite> can be run and puts
+them in the <cite>runnables</cite> queue</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="daffy.vm.scheduler.DVM_scheduler_reset">
 <tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">DVM_scheduler_reset</tt><big>(</big><em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#DVM_scheduler_reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.DVM_scheduler_reset" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reset a scheduler to its initial state</p>
@@ -99,10 +106,42 @@ dependencies are ready)</p>
 operations that can be run, as all their dependancies are ready</p>
 </dd></dl>
 
+<dl class="class">
+<dt id="daffy.vm.scheduler.Updater">
+<em class="property">class </em><tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">Updater</tt><big>(</big><em>scheduler</em><big>)</big><a class="headerlink" href="#daffy.vm.scheduler.Updater" title="Permalink to this definition">¶</a></dt>
+<dd><p>A coordination thread that updates dependencies once an operation has
+finished</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="daffy.vm.scheduler.Worker">
+<em class="property">class </em><tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">Worker</tt><big>(</big><em>scheduler</em><big>)</big><a class="headerlink" href="#daffy.vm.scheduler.Worker" title="Permalink to this definition">¶</a></dt>
+<dd><p>A worker thread that execute operations from the <cite>runnables</cite> queue of
+a give scheduler</p>
+</dd></dl>
+
 <dl class="exception">
 <dt id="daffy.vm.scheduler.WrongArgumentError">
 <em class="property">exception </em><tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">WrongArgumentError</tt><a class="reference internal" href="_modules/daffy/vm/scheduler.html#WrongArgumentError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.WrongArgumentError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wrong argument in operation creation</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="daffy.vm.scheduler.op_is_runnable">
+<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">op_is_runnable</tt><big>(</big><em>op</em>, <em>scheduler</em><big>)</big><a class="headerlink" href="#daffy.vm.scheduler.op_is_runnable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if an operation is runnable</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="daffy.vm.scheduler.op_requirements_set">
+<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">op_requirements_set</tt><big>(</big><em>op</em>, <em>scheduler</em><big>)</big><a class="headerlink" href="#daffy.vm.scheduler.op_requirements_set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loop over an operation inputs and set its requirements</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="daffy.vm.scheduler.op_set_as_finished">
+<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">op_set_as_finished</tt><big>(</big><em>op</em>, <em>scheduler</em><big>)</big><a class="headerlink" href="#daffy.vm.scheduler.op_set_as_finished" title="Permalink to this definition">¶</a></dt>
+<dd><p>Notify operations depending on <cite>op</cite> that its ouputs are ready</p>
 </dd></dl>
 
 </div>

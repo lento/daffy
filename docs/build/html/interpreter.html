@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Interpreter &mdash; Daffy v0.1dev documentation</title>
+    <title>interpreter — Parsing instructions and feeding the scheduler &mdash; Daffy v0.1dev documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
@@ -23,8 +23,8 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="Daffy v0.1dev documentation" href="index.html" />
-    <link rel="next" title="scheduler — Keeping track of operations and dependecies." href="scheduler.html" />
-    <link rel="prev" title="Welcome to Daffy’s documentation!" href="index.html" /> 
+    <link rel="next" title="scheduler — Keeping track of operations and dependecies" href="scheduler.html" />
+    <link rel="prev" title="cli — Command line interface" href="cli.html" /> 
   </head>
   <body>
     <div class="related">
@@ -37,10 +37,10 @@
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="scheduler.html" title="scheduler — Keeping track of operations and dependecies."
+          <a href="scheduler.html" title="scheduler — Keeping track of operations and dependecies"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="index.html" title="Welcome to Daffy’s documentation!"
+          <a href="cli.html" title="cli — Command line interface"
              accesskey="P">previous</a> |</li>
         <li><a href="index.html">Daffy v0.1dev documentation</a> &raquo;</li> 
       </ul>
@@ -51,13 +51,13 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="module-daffy.vm.interpreter">
-<span id="interpreter"></span><h1>Interpreter<a class="headerlink" href="#module-daffy.vm.interpreter" title="Permalink to this headline">¶</a></h1>
-<p>Interpreter module</p>
-<p>This is a basic interpreter for Daffy assembly code.
-The interpreter expects lines in the form:</p>
+  <div class="section" id="module-interpreter">
+<span id="interpreter-parsing-instructions-and-feeding-the-scheduler"></span><h1><a class="reference internal" href="#module-interpreter" title="Parsing instructions and feeding the :mod:`Scheduler`"><tt class="xref py py-mod docutils literal"><span class="pre">interpreter</span></tt></a> &#8212; Parsing instructions and feeding the <a class="reference internal" href="scheduler.html#module-scheduler" title="Keeping track of operations and their dependency relations."><tt class="xref py py-mod docutils literal"><span class="pre">scheduler</span></tt></a><a class="headerlink" href="#module-interpreter" title="Permalink to this headline">¶</a></h1>
+<span class="target" id="module-daffy.vm.interpreter"></span><p>This is a basic interpreter for Daffy assembly code.
+The interpreter expects instructions in the form:</p>
 <div class="highlight-python"><pre>$name: optype([argname=$target.attr | &lt;float value&gt;], ...)</pre>
 </div>
+<p>one instruction per line.</p>
 <dl class="exception">
 <dt id="daffy.vm.interpreter.ParserSyntaxError">
 <em class="property">exception </em><tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">ParserSyntaxError</tt><a class="reference internal" href="_modules/daffy/vm/interpreter.html#ParserSyntaxError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.interpreter.ParserSyntaxError" title="Permalink to this definition">¶</a></dt>
@@ -71,16 +71,22 @@ The interpreter expects lines in the form:</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="daffy.vm.interpreter.DVM_line_parse">
-<tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">DVM_line_parse</tt><big>(</big><em>line</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/interpreter.html#DVM_line_parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.interpreter.DVM_line_parse" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parse a line of input</p>
+<dt id="daffy.vm.interpreter.instruction_parse">
+<tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">instruction_parse</tt><big>(</big><em>instr</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/interpreter.html#instruction_parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.interpreter.instruction_parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse an instruction</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="daffy.vm.interpreter.instruction_schedule">
+<tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">instruction_schedule</tt><big>(</big><em>instruction</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/interpreter.html#instruction_schedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.interpreter.instruction_schedule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse an instruction and schedule the resulting operation for
+execution</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="daffy.vm.interpreter.DVM_instruction_run">
 <tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">DVM_instruction_run</tt><big>(</big><em>instruction</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/interpreter.html#DVM_instruction_run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.interpreter.DVM_instruction_run" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parse an instruction and schedule the resulting operation for
-execution</p>
+<dd><p>Run a single instruction</p>
 </dd></dl>
 
 <dl class="function">
@@ -98,11 +104,11 @@ execution</p>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
   <h4>Previous topic</h4>
-  <p class="topless"><a href="index.html"
-                        title="previous chapter">Welcome to Daffy&#8217;s documentation!</a></p>
+  <p class="topless"><a href="cli.html"
+                        title="previous chapter"><tt class="docutils literal docutils literal docutils literal"><span class="pre">cli</span></tt> &#8212; Command line interface</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="scheduler.html"
-                        title="next chapter"><tt class="docutils literal"><span class="pre">scheduler</span></tt> &#8212; Keeping track of operations and dependecies.</a></p>
+                        title="next chapter"><tt class="docutils literal"><span class="pre">scheduler</span></tt> &#8212; Keeping track of operations and dependecies</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/interpreter.txt"
@@ -135,10 +141,10 @@ execution</p>
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="scheduler.html" title="scheduler — Keeping track of operations and dependecies."
+          <a href="scheduler.html" title="scheduler — Keeping track of operations and dependecies"
              >next</a> |</li>
         <li class="right" >
-          <a href="index.html" title="Welcome to Daffy’s documentation!"
+          <a href="cli.html" title="cli — Command line interface"
              >previous</a> |</li>
         <li><a href="index.html">Daffy v0.1dev documentation</a> &raquo;</li> 
       </ul>

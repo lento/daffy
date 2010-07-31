@@ -66,17 +66,20 @@
 <span class="c"># Original Copyright (c) 2010, Lorenzo Pierfederici &lt;lpierfederici@gmail.com&gt;</span>
 <span class="c"># Contributor(s): </span>
 <span class="c">#</span>
-<span class="sd">&quot;&quot;&quot;Interpreter module</span>
-
-<span class="sd">This is a basic interpreter for Daffy assembly code.</span>
-<span class="sd">The interpreter expects lines in the form::</span>
+<span class="sd">&quot;&quot;&quot;This is a basic interpreter for Daffy assembly code.</span>
+<span class="sd">The interpreter expects instructions in the form::</span>
 
 <span class="sd">    $name: optype([argname=$target.attr | &lt;float value&gt;], ...)</span>
+
+<span class="sd">one instruction per line.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">re</span><span class="o">,</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">logging</span>
 <span class="kn">from</span> <span class="nn">daffy.vm.optypes</span> <span class="kn">import</span> <span class="n">optypes</span>
 <span class="kn">from</span> <span class="nn">daffy.vm.scheduler</span> <span class="kn">import</span> <span class="n">DVM_scheduler_operation_add</span><span class="p">,</span> <span class="n">DVM_scheduler_wait</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">stream</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
 
 <span class="c"># Exceptions</span>
 <div class="viewcode-block" id="ParserSyntaxError"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.ParserSyntaxError">[docs]</a><span class="k">class</span> <span class="nc">ParserSyntaxError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
@@ -88,25 +91,27 @@
 
 
 <span class="c"># parser states</span></div>
-<span class="n">NEW</span>         <span class="o">=</span>  <span class="mi">0</span>
-<span class="n">DOLLAR</span>      <span class="o">=</span>  <span class="mi">1</span>
-<span class="n">NAME</span>        <span class="o">=</span>  <span class="mi">2</span>
-<span class="n">OPTYPE</span>      <span class="o">=</span>  <span class="mi">3</span>
-<span class="n">ARGS</span>        <span class="o">=</span>  <span class="mi">4</span>
-<span class="n">ARGS_NAME</span>   <span class="o">=</span>  <span class="mi">5</span>
-<span class="n">ARGS_EQUAL</span>  <span class="o">=</span>  <span class="mi">6</span>
-<span class="n">ARGS_DOLLAR</span> <span class="o">=</span>  <span class="mi">7</span>
-<span class="n">ARGS_TARGET</span> <span class="o">=</span>  <span class="mi">8</span>
-<span class="n">ARGS_DOT</span>    <span class="o">=</span>  <span class="mi">9</span>
-<span class="n">ARGS_ATTR</span>   <span class="o">=</span> <span class="mi">10</span>
-<span class="n">ARGS_FLOAT</span>  <span class="o">=</span> <span class="mi">11</span>
+<span class="n">START</span>         <span class="o">=</span>  <span class="mi">0</span>
+<span class="n">DOLLAR</span>        <span class="o">=</span>  <span class="mi">1</span>
+<span class="n">NAME</span>          <span class="o">=</span>  <span class="mi">2</span>
+<span class="n">COLON</span>         <span class="o">=</span>  <span class="mi">3</span>
+<span class="n">OPTYPE</span>        <span class="o">=</span>  <span class="mi">4</span>
+<span class="n">ARGS</span>          <span class="o">=</span>  <span class="mi">5</span>
+<span class="n">ARGS_NAME</span>     <span class="o">=</span>  <span class="mi">6</span>
+<span class="n">ARGS_EQUAL</span>    <span class="o">=</span>  <span class="mi">7</span>
+<span class="n">ARGS_DOLLAR</span>   <span class="o">=</span>  <span class="mi">8</span>
+<span class="n">ARGS_TARGET</span>   <span class="o">=</span>  <span class="mi">9</span>
+<span class="n">ARGS_DOT</span>      <span class="o">=</span> <span class="mi">10</span>
+<span class="n">ARGS_ATTR</span>     <span class="o">=</span> <span class="mi">11</span>
+<span class="n">ARGS_COMMA</span>    <span class="o">=</span> <span class="mi">12</span>
+<span class="n">ARGS_FLOAT</span>    <span class="o">=</span> <span class="mi">13</span>
+<span class="n">FLOAT_DOT</span>     <span class="o">=</span> <span class="mi">14</span>
+<span class="n">FLOAT_DECIMAL</span> <span class="o">=</span> <span class="mi">15</span>
 
-<div class="viewcode-block" id="DVM_line_parse"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.DVM_line_parse">[docs]</a><span class="k">def</span> <span class="nf">DVM_line_parse</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Parse a line of input&quot;&quot;&quot;</span>
-    <span class="n">state</span> <span class="o">=</span> <span class="n">NEW</span>
-    <span class="n">AFTER_COLON</span> <span class="o">=</span> <span class="bp">False</span>
-    <span class="n">AFTER_COMMA</span> <span class="o">=</span> <span class="bp">False</span>
-    <span class="n">FLOAT_DECIMAL</span> <span class="o">=</span> <span class="bp">False</span>
+<span class="c"># internal use</span>
+<div class="viewcode-block" id="instruction_parse"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.instruction_parse">[docs]</a><span class="k">def</span> <span class="nf">instruction_parse</span><span class="p">(</span><span class="n">instr</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parse an instruction&quot;&quot;&quot;</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">START</span>
 
     <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
     <span class="n">optype</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
@@ -116,65 +121,71 @@
     <span class="n">arg_attr</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
     <span class="n">arg_float</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
     
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">AFTER_COLON</span> <span class="ow">or</span> <span class="n">AFTER_COMMA</span><span class="p">)</span> <span class="ow">and</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;\s&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
-            <span class="k">pass</span>    <span class="c"># ignore whitespace</span>
-        <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">NEW</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">instr</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">state</span> <span class="o">==</span> <span class="n">START</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;$&#39;</span><span class="p">:</span>
                 <span class="n">state</span> <span class="o">=</span> <span class="n">DOLLAR</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
-                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting &quot;$&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
-                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting &quot;$&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">instr</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
         <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">DOLLAR</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[a-zA-Z]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
                 <span class="n">name</span> <span class="o">+=</span> <span class="n">c</span>
                 <span class="n">state</span> <span class="o">=</span> <span class="n">NAME</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
-                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting an operation name&#39;</span> <span class="o">%</span> <span class="n">i</span>
-                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting an operation name&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">instr</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
         <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">NAME</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[a-zA-Z0-9_]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
                 <span class="n">name</span> <span class="o">+=</span> <span class="n">c</span>
             <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;:&#39;</span><span class="p">:</span>
-                <span class="n">state</span> <span class="o">=</span> <span class="n">OPTYPE</span>
-                <span class="n">AFTER_COLON</span> <span class="o">=</span> <span class="bp">True</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">COLON</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
-                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting &quot;:&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
-                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting &quot;:&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">instr</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">COLON</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;\s&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+                <span class="k">pass</span>    <span class="c"># ignore whitespace</span>
+            <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[a-zA-Z]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+                <span class="n">optype</span> <span class="o">+=</span> <span class="n">c</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">OPTYPE</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting an operation type&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">instr</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
         <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">OPTYPE</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[a-zA-Z]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
-                <span class="n">AFTER_COLON</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[a-zA-Z0-9_]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
                 <span class="n">optype</span> <span class="o">+=</span> <span class="n">c</span>
             <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;(&#39;</span><span class="p">:</span>
                 <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
-                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting an operation type&#39;</span> <span class="o">%</span> <span class="n">i</span>
-                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting an operation type&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">instr</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
         <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">ARGS</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[a-zA-Z]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
                 <span class="n">arg_name</span> <span class="o">+=</span> <span class="n">c</span>
                 <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS_NAME</span>
             <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;)&#39;</span><span class="p">:</span>
                 <span class="c"># the operation definition ended, we ignore the rest of the</span>
-                <span class="c"># line, so it can be used for comments</span>
+                <span class="c"># instruction, so it can be used for comments</span>
                 <span class="k">break</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
-                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting an argument name or &quot;)&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
-                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting an argument name or &quot;)&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">instr</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
         <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">ARGS_NAME</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[a-zA-Z0-9_]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
                 <span class="n">arg_name</span> <span class="o">+=</span> <span class="n">c</span>
             <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;=&#39;</span><span class="p">:</span>
                 <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS_EQUAL</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
-                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting &quot;=&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
-                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting &quot;=&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">instr</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
         <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">ARGS_EQUAL</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;$&#39;</span><span class="p">:</span>
                 <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS_DOLLAR</span>
@@ -182,97 +193,138 @@
                 <span class="n">arg_float</span> <span class="o">+=</span> <span class="n">c</span>
                 <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS_FLOAT</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
-                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting a literal value or &quot;$&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
-                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting &quot;$&quot; or a literal value&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">instr</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
         <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">ARGS_DOLLAR</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[a-zA-Z]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
                 <span class="n">arg_target</span> <span class="o">+=</span> <span class="n">c</span>
                 <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS_TARGET</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
-                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting an operation name&#39;</span> <span class="o">%</span> <span class="n">i</span>
-                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting an operation name&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">instr</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
         <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">ARGS_TARGET</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[a-zA-Z0-9_]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
-                <span class="n">AFTER_COMMA</span> <span class="o">=</span> <span class="bp">False</span>
                 <span class="n">arg_target</span> <span class="o">+=</span> <span class="n">c</span>
             <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;.&#39;</span><span class="p">:</span>
                 <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS_DOT</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
-                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting &quot;.&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
-                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting &quot;.&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">instr</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
         <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">ARGS_DOT</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[a-zA-Z]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
                 <span class="n">arg_attr</span> <span class="o">+=</span> <span class="n">c</span>
                 <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS_ATTR</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
-                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting an attribute name&#39;</span> <span class="o">%</span> <span class="n">i</span>
-                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting an attribute name&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">instr</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
         <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">ARGS_ATTR</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[a-zA-Z0-9_]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
                 <span class="n">arg_attr</span> <span class="o">+=</span> <span class="n">c</span>
             <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;,&#39;</span><span class="p">:</span>
                 <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">arg_name</span><span class="p">,</span> <span class="n">arg_target</span><span class="p">,</span> <span class="n">arg_attr</span><span class="p">))</span>
                 <span class="n">arg_name</span> <span class="o">=</span> <span class="n">arg_target</span> <span class="o">=</span> <span class="n">arg_attr</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
-                <span class="n">AFTER_COMMA</span> <span class="o">=</span> <span class="bp">True</span>
-                <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS_COMMA</span>
             <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;)&#39;</span><span class="p">:</span>
                 <span class="c"># the operation definition ended, we ignore the rest of the</span>
-                <span class="c"># line, so it can be used for comments</span>
+                <span class="c"># instruction, so it can be used for comments</span>
                 <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">arg_name</span><span class="p">,</span> <span class="n">arg_target</span><span class="p">,</span> <span class="n">arg_attr</span><span class="p">))</span>
                 <span class="n">arg_name</span> <span class="o">=</span> <span class="n">arg_target</span> <span class="o">=</span> <span class="n">arg_attr</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
                 <span class="k">break</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
-                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting &quot;,&quot; or &quot;)&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
-                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting &quot;,&quot; or &quot;)&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">instr</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">ARGS_COMMA</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;\s&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+                <span class="k">pass</span>    <span class="c"># ignore whitespace</span>
+            <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[a-zA-Z]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+                <span class="n">arg_name</span> <span class="o">+=</span> <span class="n">c</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS_NAME</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting an argument name&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">instr</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
         <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">ARGS_FLOAT</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;,&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[0-9]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+                <span class="n">arg_float</span> <span class="o">+=</span> <span class="n">c</span>
+            <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;.&#39;</span><span class="p">:</span>
+                <span class="n">arg_float</span> <span class="o">+=</span> <span class="n">c</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">FLOAT_DOT</span>
+            <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;,&#39;</span><span class="p">:</span>
                 <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">arg_name</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">arg_float</span><span class="p">)))</span>
                 <span class="n">arg_name</span> <span class="o">=</span> <span class="n">arg_float</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
-                <span class="n">AFTER_COMMA</span> <span class="o">=</span> <span class="bp">True</span>
-                <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS_COMMA</span>
             <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;)&#39;</span><span class="p">:</span>
                 <span class="c"># the operation definition ended, we ignore the rest of the</span>
-                <span class="c"># line, so it can be used for comments</span>
+                <span class="c"># instruction, so it can be used for comments</span>
                 <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">arg_name</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">arg_float</span><span class="p">)))</span>
                 <span class="n">arg_name</span> <span class="o">=</span> <span class="n">arg_float</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
                 <span class="k">break</span>
-            <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;.&#39;</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">FLOAT_DECIMAL</span><span class="p">:</span>
-                    <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
-                    <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting  a digit, &quot;,&quot; or &quot;)&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
-                    <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span>
-                                                            <span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">arg_float</span> <span class="o">+=</span> <span class="n">c</span>
-                    <span class="n">FLOAT_DECIMAL</span> <span class="o">=</span> <span class="bp">True</span>
-            <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[0-9]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
-                <span class="n">arg_float</span> <span class="o">+=</span> <span class="n">c</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">index</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
-                <span class="n">error</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting a digit, &quot;,&quot; or &quot;)&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
-                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">error</span><span class="p">))</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting a digit, &quot;.&quot;, &quot;,&quot; or &quot;)&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">instr</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">FLOAT_DOT</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[0-9]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+                <span class="n">arg_float</span> <span class="o">+=</span> <span class="n">c</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">FLOAT_DECIMAL</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting a digit&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">instr</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="n">FLOAT_DECIMAL</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s">r&#39;[0-9]&#39;</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+                <span class="n">arg_float</span> <span class="o">+=</span> <span class="n">c</span>
+            <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;,&#39;</span><span class="p">:</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">arg_name</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">arg_float</span><span class="p">)))</span>
+                <span class="n">arg_name</span> <span class="o">=</span> <span class="n">arg_float</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS_COMMA</span>
+            <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;)&#39;</span><span class="p">:</span>
+                <span class="c"># the operation definition ended, we ignore the rest of the</span>
+                <span class="c"># instruction, so it can be used for comments</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">arg_name</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">arg_float</span><span class="p">)))</span>
+                <span class="n">arg_name</span> <span class="o">=</span> <span class="n">arg_float</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+                <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting a digit, &quot;,&quot; or &quot;)&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
+                <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">instr</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">ParserUndefinedState</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
     
     <span class="k">return</span> <span class="n">optype</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span>
 </div>
-<div class="viewcode-block" id="DVM_instruction_run"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.DVM_instruction_run">[docs]</a><span class="k">def</span> <span class="nf">DVM_instruction_run</span><span class="p">(</span><span class="n">instruction</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
+<div class="viewcode-block" id="instruction_schedule"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.instruction_schedule">[docs]</a><span class="k">def</span> <span class="nf">instruction_schedule</span><span class="p">(</span><span class="n">instruction</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Parse an instruction and schedule the resulting operation for</span>
 <span class="sd">    execution</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">optype</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="n">DVM_line_parse</span><span class="p">(</span><span class="n">instruction</span><span class="p">)</span>
-    <span class="n">DVM_scheduler_operation_add</span><span class="p">(</span><span class="n">optype</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">optype</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="n">instruction_parse</span><span class="p">(</span><span class="n">instruction</span><span class="p">)</span>
+        <span class="n">DVM_scheduler_operation_add</span><span class="p">(</span><span class="n">optype</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">ParserSyntaxError</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&#39;SyntaxError: </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">error</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="mi">0</span>
+
+
+<span class="c"># API</span></div>
+<div class="viewcode-block" id="DVM_instruction_run"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.DVM_instruction_run">[docs]</a><span class="k">def</span> <span class="nf">DVM_instruction_run</span><span class="p">(</span><span class="n">instruction</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Run a single instruction&quot;&quot;&quot;</span>
+    <span class="n">retval</span> <span class="o">=</span> <span class="n">instruction_schedule</span><span class="p">(</span><span class="n">instruction</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
+    <span class="n">DVM_scheduler_wait</span><span class="p">(</span><span class="n">scheduler</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">retval</span>
 </div>
 <div class="viewcode-block" id="DVM_program_run"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.DVM_program_run">[docs]</a><span class="k">def</span> <span class="nf">DVM_program_run</span><span class="p">(</span><span class="n">program</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Run a Daffy program&quot;&quot;&quot;</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">for</span> <span class="n">instruction</span> <span class="ow">in</span> <span class="n">program</span><span class="p">:</span>
-        <span class="n">DVM_instruction_run</span><span class="p">(</span><span class="n">instruction</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">+=</span> <span class="n">instruction_schedule</span><span class="p">(</span><span class="n">instruction</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
     <span class="n">DVM_scheduler_wait</span><span class="p">(</span><span class="n">scheduler</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="mi">0</span> <span class="ow">or</span> <span class="mi">1</span>
 </pre></div></div>
 
           </div>

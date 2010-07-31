@@ -1,5 +1,5 @@
-:mod:`scheduler` --- Keeping track of operations and dependecies.
-=================================================================
+:mod:`scheduler` --- Keeping track of operations and dependecies
+================================================================
 
 .. module:: scheduler
     :synopsis: Keeping track of operations and their dependency relations.

@@ -1,5 +1,5 @@
-:mod:`cli` --- Command line interface.
-======================================
+:mod:`cli` --- Command line interface
+=====================================
 
 .. this page doesn't use autodoc because importing a module named "cli"
    breaks sphinx-build

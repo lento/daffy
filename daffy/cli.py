@@ -25,12 +25,15 @@
 import sys, logging
 from optparse import OptionParser
 from daffy.vm.scheduler import Scheduler
-from daffy.vm.interpreter import DVM_program_run
+from daffy.vm.interpreter import DVM_program_run, DVM_instruction_run
 
-parser = OptionParser(usage="usage: %prog [options] file")
+parser = OptionParser(usage="usage: %prog [options] [ -c cmd | file ]")
 parser.add_option("-v", "--verbose",
                   action="store_true", default=False,
                   help="print debug messages to stderr")
+parser.add_option("-c", "--cmd",
+                  default=None,
+                  help="a single instruction")
 
 (options, args) = parser.parse_args()
 
@@ -42,21 +45,23 @@ def main():
     :func:`DVM_program_run` to feed the contents of a **Daffy** file to the
     scheduler
     """
-    if not len(args) == 1:
+    scheduler = Scheduler(loglevel=loglevel)
+
+    if options.cmd and len(args) == 0:          # called with -c
+        print(options.cmd)
+        DVM_instruction_run(options.cmd, scheduler)
+    elif not options.cmd and len(args) == 1:    # called with a file
+        filename = args[0]
+        try:
+            f = open(filename)
+        except IOError, error:
+            print("daffy: can't open file '%s': %s" % (filename, error))
+            return 1
+        DVM_program_run(f, scheduler)
+        f.close()
+    else:
         parser.print_help()
         return 1
-    else:
-        filename = args[0]
-    
-    try:
-        f = open(filename)
-    except IOError, error:
-        print("daffy: can't open file '%s': %s" % (filename, error))
-        return 1
-    
-    scheduler = Scheduler(loglevel=loglevel)
-    DVM_program_run(f, scheduler)
-    f.close()
 
 if __name__ == '__main__':
     main()

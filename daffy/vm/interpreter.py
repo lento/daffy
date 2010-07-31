@@ -21,7 +21,7 @@
 """Interpreter module
 
 This is a basic interpreter for Daffy assembly code.
-The interpreter expects lines in the form::
+The interpreter expects instructions in the form::
 
     $name: optype([argname=$target.attr | <float value>], ...)
 """
@@ -53,8 +53,9 @@ ARGS_DOT    =  9
 ARGS_ATTR   = 10
 ARGS_FLOAT  = 11
 
-def DVM_line_parse(line):
-    """Parse a line of input"""
+# internal use
+def instruction_parse(instr):
+    """Parse an instruction"""
     state = NEW
     AFTER_COLON = False
     AFTER_COMMA = False
@@ -68,24 +69,24 @@ def DVM_line_parse(line):
     arg_attr = ''
     arg_float = ''
     
-    for i, c in enumerate(line):
+    for i, c in enumerate(instr):
         if (AFTER_COLON or AFTER_COMMA) and re.match(r'\s', c):
             pass    # ignore whitespace
         elif state == NEW:
             if c == '$':
                 state = DOLLAR
             else:
-                index = '%s^' % ('-' * i)
-                error = 'at char %i: expecting "$"' % i
-                raise ParserSyntaxError('\n%s\n%s\n%s' % (line, index, error))
+                pos = '%s^' % ('-' * i)
+                err = 'at char %i: expecting "$"' % i
+                raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
         elif state == DOLLAR:
             if re.match(r'[a-zA-Z]', c):
                 name += c
                 state = NAME
             else:
-                index = '%s^' % ('-' * i)
-                error = 'at char %i: expecting an operation name' % i
-                raise ParserSyntaxError('\n%s\n%s\n%s' % (line, index, error))
+                pos = '%s^' % ('-' * i)
+                err = 'at char %i: expecting an operation name' % i
+                raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
         elif state == NAME:
             if re.match(r'[a-zA-Z0-9_]', c):
                 name += c
@@ -93,9 +94,9 @@ def DVM_line_parse(line):
                 state = OPTYPE
                 AFTER_COLON = True
             else:
-                index = '%s^' % ('-' * i)
-                error = 'at char %i: expecting ":"' % i
-                raise ParserSyntaxError('\n%s\n%s\n%s' % (line, index, error))
+                pos = '%s^' % ('-' * i)
+                err = 'at char %i: expecting ":"' % i
+                raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
         elif state == OPTYPE:
             if re.match(r'[a-zA-Z]', c):
                 AFTER_COLON = False
@@ -103,30 +104,30 @@ def DVM_line_parse(line):
             elif c == '(':
                 state = ARGS
             else:
-                index = '%s^' % ('-' * i)
-                error = 'at char %i: expecting an operation type' % i
-                raise ParserSyntaxError('\n%s\n%s\n%s' % (line, index, error))
+                pos = '%s^' % ('-' * i)
+                err = 'at char %i: expecting an operation type' % i
+                raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
         elif state == ARGS:
             if re.match(r'[a-zA-Z]', c):
                 arg_name += c
                 state = ARGS_NAME
             elif c == ')':
                 # the operation definition ended, we ignore the rest of the
-                # line, so it can be used for comments
+                # instruction, so it can be used for comments
                 break
             else:
-                index = '%s^' % ('-' * i)
-                error = 'at char %i: expecting an argument name or ")"' % i
-                raise ParserSyntaxError('\n%s\n%s\n%s' % (line, index, error))
+                pos = '%s^' % ('-' * i)
+                err = 'at char %i: expecting an argument name or ")"' % i
+                raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
         elif state == ARGS_NAME:
             if re.match(r'[a-zA-Z0-9_]', c):
                 arg_name += c
             elif c == '=':
                 state = ARGS_EQUAL
             else:
-                index = '%s^' % ('-' * i)
-                error = 'at char %i: expecting "="' % i
-                raise ParserSyntaxError('\n%s\n%s\n%s' % (line, index, error))
+                pos = '%s^' % ('-' * i)
+                err = 'at char %i: expecting "="' % i
+                raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
         elif state == ARGS_EQUAL:
             if c == '$':
                 state = ARGS_DOLLAR
@@ -134,17 +135,17 @@ def DVM_line_parse(line):
                 arg_float += c
                 state = ARGS_FLOAT
             else:
-                index = '%s^' % ('-' * i)
-                error = 'at char %i: expecting a literal value or "$"' % i
-                raise ParserSyntaxError('\n%s\n%s\n%s' % (line, index, error))
+                pos = '%s^' % ('-' * i)
+                err = 'at char %i: expecting a literal value or "$"' % i
+                raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
         elif state == ARGS_DOLLAR:
             if re.match(r'[a-zA-Z]', c):
                 arg_target += c
                 state = ARGS_TARGET
             else:
-                index = '%s^' % ('-' * i)
-                error = 'at char %i: expecting an operation name' % i
-                raise ParserSyntaxError('\n%s\n%s\n%s' % (line, index, error))
+                pos = '%s^' % ('-' * i)
+                err = 'at char %i: expecting an operation name' % i
+                raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
         elif state == ARGS_TARGET:
             if re.match(r'[a-zA-Z0-9_]', c):
                 AFTER_COMMA = False
@@ -152,17 +153,17 @@ def DVM_line_parse(line):
             elif c == '.':
                 state = ARGS_DOT
             else:
-                index = '%s^' % ('-' * i)
-                error = 'at char %i: expecting "."' % i
-                raise ParserSyntaxError('\n%s\n%s\n%s' % (line, index, error))
+                pos = '%s^' % ('-' * i)
+                err = 'at char %i: expecting "."' % i
+                raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
         elif state == ARGS_DOT:
             if re.match(r'[a-zA-Z]', c):
                 arg_attr += c
                 state = ARGS_ATTR
             else:
-                index = '%s^' % ('-' * i)
-                error = 'at char %i: expecting an attribute name' % i
-                raise ParserSyntaxError('\n%s\n%s\n%s' % (line, index, error))
+                pos = '%s^' % ('-' * i)
+                err = 'at char %i: expecting an attribute name' % i
+                raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
         elif state == ARGS_ATTR:
             if re.match(r'[a-zA-Z0-9_]', c):
                 arg_attr += c
@@ -173,14 +174,14 @@ def DVM_line_parse(line):
                 state = ARGS
             elif c == ')':
                 # the operation definition ended, we ignore the rest of the
-                # line, so it can be used for comments
+                # instruction, so it can be used for comments
                 args.append((arg_name, arg_target, arg_attr))
                 arg_name = arg_target = arg_attr = ''
                 break
             else:
-                index = '%s^' % ('-' * i)
-                error = 'at char %i: expecting "," or ")"' % i
-                raise ParserSyntaxError('\n%s\n%s\n%s' % (line, index, error))
+                pos = '%s^' % ('-' * i)
+                err = 'at char %i: expecting "," or ")"' % i
+                raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
         elif state == ARGS_FLOAT:
             if c == ',':
                 args.append((arg_name, float(arg_float)))
@@ -189,41 +190,47 @@ def DVM_line_parse(line):
                 state = ARGS
             elif c == ')':
                 # the operation definition ended, we ignore the rest of the
-                # line, so it can be used for comments
+                # instruction, so it can be used for comments
                 args.append((arg_name, float(arg_float)))
                 arg_name = arg_float = ''
                 break
             elif c == '.':
                 if FLOAT_DECIMAL:
-                    index = '%s^' % ('-' * i)
-                    error = 'at char %i: expecting  a digit, "," or ")"' % i
-                    raise ParserSyntaxError('\n%s\n%s\n%s' % (
-                                                            line, index, error))
+                    pos = '%s^' % ('-' * i)
+                    err = 'at char %i: expecting  a digit, "," or ")"' % i
+                    raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
                 else:
                     arg_float += c
                     FLOAT_DECIMAL = True
             elif re.match(r'[0-9]', c):
                 arg_float += c
             else:
-                index = '%s^' % ('-' * i)
-                error = 'at char %i: expecting a digit, "," or ")"' % i
-                raise ParserSyntaxError('\n%s\n%s\n%s' % (line, index, error))
+                pos = '%s^' % ('-' * i)
+                err = 'at char %i: expecting a digit, "," or ")"' % i
+                raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
         else:
             raise ParserUndefinedState(state)
     
     return optype, name, args
 
-def DVM_instruction_run(instruction, scheduler):
+def instruction_schedule(instruction, scheduler):
     """Parse an instruction and schedule the resulting operation for
     execution
     """
-    optype, name, args = DVM_line_parse(instruction)
+    optype, name, args = instruction_parse(instruction)
     DVM_scheduler_operation_add(optype, name, args, scheduler)
+
+
+# API
+def DVM_instruction_run(instruction, scheduler):
+    """Run a single instruction"""
+    instruction_schedule(instruction, scheduler)
+    DVM_scheduler_wait(scheduler)
 
 def DVM_program_run(program, scheduler):
     """Run a Daffy program"""
     for instruction in program:
-        DVM_instruction_run(instruction, scheduler)
+        instruction_schedule(instruction, scheduler)
     DVM_scheduler_wait(scheduler)
 
 

@@ -26,9 +26,12 @@ The interpreter expects instructions in the form::
     $name: optype([argname=$target.attr | <float value>], ...)
 """
 
-import re
+import re, sys, logging
 from daffy.vm.optypes import optypes
 from daffy.vm.scheduler import DVM_scheduler_operation_add, DVM_scheduler_wait
+
+logging.basicConfig(stream=sys.stderr, level=logging.ERROR)
+log = logging.getLogger(__name__)
 
 # Exceptions
 class ParserSyntaxError(Exception):
@@ -186,6 +189,7 @@ def instruction_parse(instr):
             if c == ',':
                 args.append((arg_name, float(arg_float)))
                 arg_name = arg_float = ''
+                FLOAT_DECIMAL = False
                 AFTER_COMMA = True
                 state = ARGS
             elif c == ')':
@@ -217,20 +221,28 @@ def instruction_schedule(instruction, scheduler):
     """Parse an instruction and schedule the resulting operation for
     execution
     """
-    optype, name, args = instruction_parse(instruction)
-    DVM_scheduler_operation_add(optype, name, args, scheduler)
+    try:
+        optype, name, args = instruction_parse(instruction)
+        DVM_scheduler_operation_add(optype, name, args, scheduler)
+    except ParserSyntaxError, error:
+        log.error('SyntaxError: %s' % error)
+        return 1
+    return 0
 
 
 # API
 def DVM_instruction_run(instruction, scheduler):
     """Run a single instruction"""
-    instruction_schedule(instruction, scheduler)
+    retval = instruction_schedule(instruction, scheduler)
     DVM_scheduler_wait(scheduler)
+    return retval
 
 def DVM_program_run(program, scheduler):
     """Run a Daffy program"""
+    result = 0
     for instruction in program:
-        instruction_schedule(instruction, scheduler)
+        result += instruction_schedule(instruction, scheduler)
     DVM_scheduler_wait(scheduler)
+    return result == 0 and 0 or 1
 
 

@@ -48,8 +48,8 @@ def main():
     scheduler = Scheduler(loglevel=loglevel)
 
     if options.cmd and len(args) == 0:          # called with -c
-        print(options.cmd)
-        DVM_instruction_run(options.cmd, scheduler)
+        retval = DVM_instruction_run(options.cmd, scheduler)
+        return retval
     elif not options.cmd and len(args) == 1:    # called with a file
         filename = args[0]
         try:
@@ -57,8 +57,9 @@ def main():
         except IOError, error:
             print("daffy: can't open file '%s': %s" % (filename, error))
             return 1
-        DVM_program_run(f, scheduler)
+        retval = DVM_program_run(f, scheduler)
         f.close()
+        return retval
     else:
         parser.print_help()
         return 1

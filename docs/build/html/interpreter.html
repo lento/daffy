@@ -58,6 +58,13 @@ The interpreter expects instructions in the form:</p>
 <div class="highlight-python"><pre>$name: optype([argname=$target.attr | &lt;float value&gt;], ...)</pre>
 </div>
 <p>one instruction per line.</p>
+<p>Instruction parsing is done by the very simple state machine represented by this
+scheme:</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">the image is only a draft and not finished yet</p>
+</div>
+<img alt="_images/state_machine.png" src="_images/state_machine.png" />
 <dl class="exception">
 <dt id="daffy.vm.interpreter.ParserSyntaxError">
 <em class="property">exception </em><tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">ParserSyntaxError</tt><a class="reference internal" href="_modules/daffy/vm/interpreter.html#ParserSyntaxError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.interpreter.ParserSyntaxError" title="Permalink to this definition">¶</a></dt>
@@ -105,7 +112,7 @@ execution</p>
         <div class="sphinxsidebarwrapper">
   <h4>Previous topic</h4>
   <p class="topless"><a href="cli.html"
-                        title="previous chapter"><tt class="docutils literal docutils literal docutils literal"><span class="pre">cli</span></tt> &#8212; Command line interface</a></p>
+                        title="previous chapter"><tt class="docutils literal docutils literal"><span class="pre">cli</span></tt> &#8212; Command line interface</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="scheduler.html"
                         title="next chapter"><tt class="docutils literal"><span class="pre">scheduler</span></tt> &#8212; Keeping track of operations and dependecies</a></p>

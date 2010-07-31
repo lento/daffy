@@ -24,6 +24,15 @@ The interpreter expects instructions in the form::
     $name: optype([argname=$target.attr | <float value>], ...)
 
 one instruction per line.
+
+Instruction parsing is done by the very simple state machine represented by this
+scheme:
+
+.. warning::
+    the image is only a draft and not finished yet
+
+.. image:: _static/state_machine.png
+
 """
 
 import re, sys, logging

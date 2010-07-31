@@ -18,12 +18,12 @@
 # Original Copyright (c) 2010, Lorenzo Pierfederici <lpierfederici@gmail.com>
 # Contributor(s): 
 #
-"""Interpreter module
-
-This is a basic interpreter for Daffy assembly code.
+"""This is a basic interpreter for Daffy assembly code.
 The interpreter expects instructions in the form::
 
     $name: optype([argname=$target.attr | <float value>], ...)
+
+one instruction per line.
 """
 
 import re, sys, logging
@@ -43,26 +43,27 @@ class ParserUndefinedState(Exception):
 
 
 # parser states
-NEW         =  0
-DOLLAR      =  1
-NAME        =  2
-OPTYPE      =  3
-ARGS        =  4
-ARGS_NAME   =  5
-ARGS_EQUAL  =  6
-ARGS_DOLLAR =  7
-ARGS_TARGET =  8
-ARGS_DOT    =  9
-ARGS_ATTR   = 10
-ARGS_FLOAT  = 11
+START         =  0
+DOLLAR        =  1
+NAME          =  2
+COLON         =  3
+OPTYPE        =  4
+ARGS          =  5
+ARGS_NAME     =  6
+ARGS_EQUAL    =  7
+ARGS_DOLLAR   =  8
+ARGS_TARGET   =  9
+ARGS_DOT      = 10
+ARGS_ATTR     = 11
+ARGS_COMMA    = 12
+ARGS_FLOAT    = 13
+FLOAT_DOT     = 14
+FLOAT_DECIMAL = 15
 
 # internal use
 def instruction_parse(instr):
     """Parse an instruction"""
-    state = NEW
-    AFTER_COLON = False
-    AFTER_COMMA = False
-    FLOAT_DECIMAL = False
+    state = START
 
     name = ''
     optype = ''
@@ -73,9 +74,7 @@ def instruction_parse(instr):
     arg_float = ''
     
     for i, c in enumerate(instr):
-        if (AFTER_COLON or AFTER_COMMA) and re.match(r'\s', c):
-            pass    # ignore whitespace
-        elif state == NEW:
+        if state == START:
             if c == '$':
                 state = DOLLAR
             else:
@@ -94,15 +93,23 @@ def instruction_parse(instr):
             if re.match(r'[a-zA-Z0-9_]', c):
                 name += c
             elif c == ':':
-                state = OPTYPE
-                AFTER_COLON = True
+                state = COLON
             else:
                 pos = '%s^' % ('-' * i)
                 err = 'at char %i: expecting ":"' % i
                 raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
+        elif state == COLON:
+            if re.match(r'\s', c):
+                pass    # ignore whitespace
+            elif re.match(r'[a-zA-Z]', c):
+                optype += c
+                state = OPTYPE
+            else:
+                pos = '%s^' % ('-' * i)
+                err = 'at char %i: expecting an operation type' % i
+                raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
         elif state == OPTYPE:
-            if re.match(r'[a-zA-Z]', c):
-                AFTER_COLON = False
+            if re.match(r'[a-zA-Z0-9_]', c):
                 optype += c
             elif c == '(':
                 state = ARGS
@@ -139,7 +146,7 @@ def instruction_parse(instr):
                 state = ARGS_FLOAT
             else:
                 pos = '%s^' % ('-' * i)
-                err = 'at char %i: expecting a literal value or "$"' % i
+                err = 'at char %i: expecting "$" or a literal value' % i
                 raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
         elif state == ARGS_DOLLAR:
             if re.match(r'[a-zA-Z]', c):
@@ -151,7 +158,6 @@ def instruction_parse(instr):
                 raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
         elif state == ARGS_TARGET:
             if re.match(r'[a-zA-Z0-9_]', c):
-                AFTER_COMMA = False
                 arg_target += c
             elif c == '.':
                 state = ARGS_DOT
@@ -173,8 +179,7 @@ def instruction_parse(instr):
             elif c == ',':
                 args.append((arg_name, arg_target, arg_attr))
                 arg_name = arg_target = arg_attr = ''
-                AFTER_COMMA = True
-                state = ARGS
+                state = ARGS_COMMA
             elif c == ')':
                 # the operation definition ended, we ignore the rest of the
                 # instruction, so it can be used for comments
@@ -185,29 +190,57 @@ def instruction_parse(instr):
                 pos = '%s^' % ('-' * i)
                 err = 'at char %i: expecting "," or ")"' % i
                 raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
+        elif state == ARGS_COMMA:
+            if re.match(r'\s', c):
+                pass    # ignore whitespace
+            elif re.match(r'[a-zA-Z]', c):
+                arg_name += c
+                state = ARGS_NAME
+            else:
+                pos = '%s^' % ('-' * i)
+                err = 'at char %i: expecting an argument name' % i
+                raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
         elif state == ARGS_FLOAT:
-            if c == ',':
+            if re.match(r'[0-9]', c):
+                arg_float += c
+            elif c == '.':
+                arg_float += c
+                state = FLOAT_DOT
+            elif c == ',':
                 args.append((arg_name, float(arg_float)))
                 arg_name = arg_float = ''
-                FLOAT_DECIMAL = False
-                AFTER_COMMA = True
-                state = ARGS
+                state = ARGS_COMMA
             elif c == ')':
                 # the operation definition ended, we ignore the rest of the
                 # instruction, so it can be used for comments
                 args.append((arg_name, float(arg_float)))
                 arg_name = arg_float = ''
                 break
-            elif c == '.':
-                if FLOAT_DECIMAL:
-                    pos = '%s^' % ('-' * i)
-                    err = 'at char %i: expecting  a digit, "," or ")"' % i
-                    raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
-                else:
-                    arg_float += c
-                    FLOAT_DECIMAL = True
-            elif re.match(r'[0-9]', c):
+            else:
+                pos = '%s^' % ('-' * i)
+                err = 'at char %i: expecting a digit, ".", "," or ")"' % i
+                raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
+        elif state == FLOAT_DOT:
+            if re.match(r'[0-9]', c):
                 arg_float += c
+                state = FLOAT_DECIMAL
+            else:
+                pos = '%s^' % ('-' * i)
+                err = 'at char %i: expecting a digit' % i
+                raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
+        elif state == FLOAT_DECIMAL:
+            if re.match(r'[0-9]', c):
+                arg_float += c
+            elif c == ',':
+                args.append((arg_name, float(arg_float)))
+                arg_name = arg_float = ''
+                state = ARGS_COMMA
+            elif c == ')':
+                # the operation definition ended, we ignore the rest of the
+                # instruction, so it can be used for comments
+                args.append((arg_name, float(arg_float)))
+                arg_name = arg_float = ''
+                break
             else:
                 pos = '%s^' % ('-' * i)
                 err = 'at char %i: expecting a digit, "," or ")"' % i

@@ -259,7 +259,9 @@ def op_set_as_finished(op, scheduler):
     """Notify other operations depending on this one that it has finished
     executing and its ouputs are ready for use
     """
-    log.debug('< %15s > %ssetting as finished' % (op.name, SPACER * FINISHING))
+    outputs = ', '.join(['%s=%s' % (o.name, o.value) for o in op.outputs])
+    log.debug('< %15s > %ssetting as finished (%s)' % (
+                                        op.name, SPACER * FINISHING, outputs))
     op.finished = True
     log.debug('< %15s > %supdating dependencies' % (op.name, SPACER * UPDATING))
     for i in range(len(op.blocking)):

@@ -1,0 +1,12 @@
+# setuptools egg info
+*.egg-info/
+
+# .pyc files
+*.pyc
+
+# rejected patches
+*.orig
+*.rej
+
+# backup files
+*~

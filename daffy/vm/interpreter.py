@@ -18,21 +18,65 @@
 # Original Copyright (c) 2010, Lorenzo Pierfederici <lpierfederici@gmail.com>
 # Contributor(s): 
 #
-"""This is a basic interpreter for Daffy assembly code.
+"""A basic interpreter for *daffy* assembly code.
 The interpreter expects instructions in the form::
 
-    $name: optype([argname=$target.attr | <float value>], ...)
+    $name: optype([argname=$target.attr | <float value>], ...) comment
 
 one instruction per line.
 
-Instruction parsing is done by the very simple state machine represented by this
-scheme:
+.. _parsing_state_machine:
 
-.. warning::
-    the image is only a draft and not finished yet
+Parsing state machine
+---------------------
 
 .. image:: _static/state_machine.png
 
+the parser is a simple state machine that goes over the instruction a
+character at a time and, depending on the input, goes through the different
+states until the instruction is succesfully parsed or an error occurs. Each
+instruction is distilled in a tuple::
+
+    (optype, name, args)
+
+that can be fed to the :mod:`scheduler` to create an :class:`Operation`
+object and process it.
+*optype* is a string indicating the requested :class:`OperationType`,
+*name* is the name for this operation in the scheduler's
+:attr:`opstable <daffy.vm.scheduler.Scheduler.opstable>`
+and *args* is a list of arguments in the form::
+
+    (arg_name, arg_target, arg_attribute) | (arg_name, <flot value>)
+
+in the first case *arg_name* is the name one of the
+:attr:`Operation.inputs`, *arg_target* is the name indicating the operation
+connected to this input and *arg_attribute* is the name of the soket in
+:attr:`Operation.outputs` we are fetching the value from.
+
+Here is a list of the parser states:
+
+============= ===== ====================================================
+Status        Value Description
+============= ===== ====================================================
+START         0     starting
+DOLLAR        1     received a "$" character
+NAME          2     accumulating a string for the operation name
+COLON         3     received a ":" character (and optional whitespace)
+OPTYPE        4     accumulating a string for the operation type
+ARGS          5     received a "(" character
+ARGS_NAME     6     accumulating a string for an argument name
+ARGS_EQUAL    7     received a "=" character while scanning args
+ARGS_DOLLAR   8     received a "$" character while scanning args
+ARGS_TARGET   9     accumulating a string for the target operation
+ARGS_DOT      10    received a "." character while scanning args
+ARGS_ATTR     11    accumulating a string for the target attribute
+ARGS_COMMA    12    received a "," character (and optionale whitespaces)
+ARGS_FLOAT    13    accumulating a string representing a floating number
+FLOAT_DOT     14    received a "." character while scanning a float
+FLOAT_DECIMAL 15    accumulating a string representing the decimal part
+ERROR         -1    an error occured
+FINISH        -2    instruction parsed succesfully
+============= ===== ====================================================
 """
 
 import re, sys, logging
@@ -68,10 +112,16 @@ ARGS_COMMA    = 12
 ARGS_FLOAT    = 13
 FLOAT_DOT     = 14
 FLOAT_DECIMAL = 15
+ERROR         = -1
+FINISH        = -2
 
 # internal use
 def instruction_parse(instr):
-    """Parse an instruction"""
+    """Parse an instruction
+
+    .. seealso::
+        :ref:`parsing_state_machine` for details on the parsing process
+    """
     state = START
 
     name = ''
@@ -81,7 +131,7 @@ def instruction_parse(instr):
     arg_target = ''
     arg_attr = ''
     arg_float = ''
-    
+
     for i, c in enumerate(instr):
         if state == START:
             if c == '$':
@@ -131,9 +181,7 @@ def instruction_parse(instr):
                 arg_name += c
                 state = ARGS_NAME
             elif c == ')':
-                # the operation definition ended, we ignore the rest of the
-                # instruction, so it can be used for comments
-                break
+                state = FINISH
             else:
                 pos = '%s^' % ('-' * i)
                 err = 'at char %i: expecting an argument name or ")"' % i
@@ -190,11 +238,8 @@ def instruction_parse(instr):
                 arg_name = arg_target = arg_attr = ''
                 state = ARGS_COMMA
             elif c == ')':
-                # the operation definition ended, we ignore the rest of the
-                # instruction, so it can be used for comments
                 args.append((arg_name, arg_target, arg_attr))
-                arg_name = arg_target = arg_attr = ''
-                break
+                state = FINISH
             else:
                 pos = '%s^' % ('-' * i)
                 err = 'at char %i: expecting "," or ")"' % i
@@ -220,11 +265,8 @@ def instruction_parse(instr):
                 arg_name = arg_float = ''
                 state = ARGS_COMMA
             elif c == ')':
-                # the operation definition ended, we ignore the rest of the
-                # instruction, so it can be used for comments
                 args.append((arg_name, float(arg_float)))
-                arg_name = arg_float = ''
-                break
+                state = FINISH
             else:
                 pos = '%s^' % ('-' * i)
                 err = 'at char %i: expecting a digit, ".", "," or ")"' % i
@@ -245,18 +287,23 @@ def instruction_parse(instr):
                 arg_name = arg_float = ''
                 state = ARGS_COMMA
             elif c == ')':
-                # the operation definition ended, we ignore the rest of the
-                # instruction, so it can be used for comments
                 args.append((arg_name, float(arg_float)))
-                arg_name = arg_float = ''
-                break
+                state = FINISH
             else:
                 pos = '%s^' % ('-' * i)
                 err = 'at char %i: expecting a digit, "," or ")"' % i
                 raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
         else:
             raise ParserUndefinedState(state)
-    
+
+        if state == FINISH:
+            # the operation definition ended, we ignore the rest of the
+            # instruction, so it can be used for comments
+            break
+        if state == ERROR:
+            pos = '%s^' % ('-' * i)
+            raise ParserSyntaxError('\n%s\n%s\n%s' % (instr, pos, err))
+
     return optype, name, args
 
 def instruction_schedule(instruction, scheduler):
@@ -280,7 +327,10 @@ def DVM_instruction_run(instruction, scheduler):
     return retval
 
 def DVM_program_run(program, scheduler):
-    """Run a Daffy program"""
+    """Run a Daffy program
+
+    the program must be a sequence of lines, one instruction per line
+    """
     result = 0
     for instruction in program:
         result += instruction_schedule(instruction, scheduler)

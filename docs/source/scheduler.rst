@@ -2,9 +2,10 @@
 ================================================================
 
 .. module:: scheduler
-    :synopsis: Keeping track of operations and their dependency relations.
+    :synopsis: Keeping track of operations and dependencies
 
 .. automodule:: daffy.vm.scheduler
+
 
 Scheduler Object
 ----------------

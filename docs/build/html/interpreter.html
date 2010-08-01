@@ -52,19 +52,161 @@
           <div class="body">
             
   <div class="section" id="module-interpreter">
-<span id="interpreter-parsing-instructions-and-feeding-the-scheduler"></span><h1><a class="reference internal" href="#module-interpreter" title="Parsing instructions and feeding the :mod:`Scheduler`"><tt class="xref py py-mod docutils literal"><span class="pre">interpreter</span></tt></a> &#8212; Parsing instructions and feeding the <a class="reference internal" href="scheduler.html#module-scheduler" title="Keeping track of operations and their dependency relations."><tt class="xref py py-mod docutils literal"><span class="pre">scheduler</span></tt></a><a class="headerlink" href="#module-interpreter" title="Permalink to this headline">¶</a></h1>
-<span class="target" id="module-daffy.vm.interpreter"></span><p>This is a basic interpreter for Daffy assembly code.
+<span id="interpreter-parsing-instructions-and-feeding-the-scheduler"></span><h1><a class="reference internal" href="#module-interpreter" title="Parsing instructions and feeding the :mod:`Scheduler`"><tt class="xref py py-mod docutils literal"><span class="pre">interpreter</span></tt></a> &#8212; Parsing instructions and feeding the <a class="reference internal" href="scheduler.html#module-scheduler" title="Keeping track of operations and dependencies"><tt class="xref py py-mod docutils literal"><span class="pre">scheduler</span></tt></a><a class="headerlink" href="#module-interpreter" title="Permalink to this headline">¶</a></h1>
+<span class="target" id="module-daffy.vm.interpreter"></span><p>A basic interpreter for <em>daffy</em> assembly code.
 The interpreter expects instructions in the form:</p>
-<div class="highlight-python"><pre>$name: optype([argname=$target.attr | &lt;float value&gt;], ...)</pre>
+<div class="highlight-python"><pre>$name: optype([argname=$target.attr | &lt;float value&gt;], ...) comment</pre>
 </div>
 <p>one instruction per line.</p>
-<p>Instruction parsing is done by the very simple state machine represented by this
-scheme:</p>
-<div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">the image is only a draft and not finished yet</p>
-</div>
+<div class="section" id="parsing-state-machine">
+<span id="id1"></span><h2>Parsing state machine<a class="headerlink" href="#parsing-state-machine" title="Permalink to this headline">¶</a></h2>
 <img alt="_images/state_machine.png" src="_images/state_machine.png" />
+<p>the parser is a simple state machine that goes over the instruction a
+character at a time and, depending on the input, goes through the different
+states until the instruction is succesfully parsed or an error occurs. Each
+instruction is distilled in a tuple:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">(</span><span class="n">optype</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>that can be fed to the <a class="reference internal" href="scheduler.html#module-scheduler" title="Keeping track of operations and dependencies"><tt class="xref py py-mod docutils literal"><span class="pre">scheduler</span></tt></a> to create an <tt class="xref py py-class docutils literal"><span class="pre">Operation</span></tt>
+object and process it.
+<em>optype</em> is a string indicating the requested <tt class="xref py py-class docutils literal"><span class="pre">OperationType</span></tt>,
+<em>name</em> is the name for this operation in the scheduler&#8217;s
+<a class="reference internal" href="scheduler.html#daffy.vm.scheduler.Scheduler.opstable" title="daffy.vm.scheduler.Scheduler.opstable"><tt class="xref py py-attr docutils literal"><span class="pre">opstable</span></tt></a>
+and <em>args</em> is a list of arguments in the form:</p>
+<div class="highlight-python"><pre>(arg_name, arg_target, arg_attribute) | (arg_name, &lt;flot value&gt;)</pre>
+</div>
+<p>in the first case <em>arg_name</em> is the name one of the
+<tt class="xref py py-attr docutils literal"><span class="pre">Operation.inputs</span></tt>, <em>arg_target</em> is the name indicating the operation
+connected to this input and <em>arg_attribute</em> is the name of the soket in
+<tt class="xref py py-attr docutils literal"><span class="pre">Operation.outputs</span></tt> we are fetching the value from.</p>
+<p>Here is a list of the parser states:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="19%" />
+<col width="7%" />
+<col width="74%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Status</th>
+<th class="head">Value</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>START</td>
+<td>0</td>
+<td>starting</td>
+</tr>
+<tr><td>DOLLAR</td>
+<td>1</td>
+<td>received a &#8220;$&#8221; character</td>
+</tr>
+<tr><td>NAME</td>
+<td>2</td>
+<td>accumulating a string for the operation name</td>
+</tr>
+<tr><td>COLON</td>
+<td>3</td>
+<td>received a &#8220;:&#8221; character (and optional whitespace)</td>
+</tr>
+<tr><td>OPTYPE</td>
+<td>4</td>
+<td>accumulating a string for the operation type</td>
+</tr>
+<tr><td>ARGS</td>
+<td>5</td>
+<td>received a &#8220;(&#8221; character</td>
+</tr>
+<tr><td>ARGS_NAME</td>
+<td>6</td>
+<td>accumulating a string for an argument name</td>
+</tr>
+<tr><td>ARGS_EQUAL</td>
+<td>7</td>
+<td>received a &#8220;=&#8221; character while scanning args</td>
+</tr>
+<tr><td>ARGS_DOLLAR</td>
+<td>8</td>
+<td>received a &#8220;$&#8221; character while scanning args</td>
+</tr>
+<tr><td>ARGS_TARGET</td>
+<td>9</td>
+<td>accumulating a string for the target operation</td>
+</tr>
+<tr><td>ARGS_DOT</td>
+<td>10</td>
+<td>received a &#8220;.&#8221; character while scanning args</td>
+</tr>
+<tr><td>ARGS_ATTR</td>
+<td>11</td>
+<td>accumulating a string for the target attribute</td>
+</tr>
+<tr><td>ARGS_COMMA</td>
+<td>12</td>
+<td>received a &#8220;,&#8221; character (and optionale whitespaces)</td>
+</tr>
+<tr><td>ARGS_FLOAT</td>
+<td>13</td>
+<td>accumulating a string representing a floating number</td>
+</tr>
+<tr><td>FLOAT_DOT</td>
+<td>14</td>
+<td>received a &#8220;.&#8221; character while scanning a float</td>
+</tr>
+<tr><td>FLOAT_DECIMAL</td>
+<td>15</td>
+<td>accumulating a string representing the decimal part</td>
+</tr>
+<tr><td>ERROR</td>
+<td>-1</td>
+<td>an error occured</td>
+</tr>
+<tr><td>FINISH</td>
+<td>-2</td>
+<td>instruction parsed succesfully</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="api-functions">
+<h2>API functions<a class="headerlink" href="#api-functions" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="daffy.vm.interpreter.DVM_instruction_run">
+<tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">DVM_instruction_run</tt><big>(</big><em>instruction</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/interpreter.html#DVM_instruction_run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.interpreter.DVM_instruction_run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run a single instruction</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="daffy.vm.interpreter.DVM_program_run">
+<tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">DVM_program_run</tt><big>(</big><em>program</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/interpreter.html#DVM_program_run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.interpreter.DVM_program_run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run a Daffy program</p>
+<p>the program must be a sequence of lines, one instruction per line</p>
+</dd></dl>
+
+</div>
+<div class="section" id="internal-functions">
+<h2>Internal functions<a class="headerlink" href="#internal-functions" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="daffy.vm.interpreter.instruction_parse">
+<tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">instruction_parse</tt><big>(</big><em>instr</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/interpreter.html#instruction_parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.interpreter.instruction_parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse an instruction</p>
+<div class="admonition-see-also admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><a class="reference internal" href="#parsing-state-machine"><em>Parsing state machine</em></a> for details on the parsing process</p>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="daffy.vm.interpreter.instruction_schedule">
+<tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">instruction_schedule</tt><big>(</big><em>instruction</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/interpreter.html#instruction_schedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.interpreter.instruction_schedule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse an instruction and schedule the resulting operation for
+execution</p>
+</dd></dl>
+
+</div>
+<div class="section" id="exceptions">
+<h2>Exceptions<a class="headerlink" href="#exceptions" title="Permalink to this headline">¶</a></h2>
 <dl class="exception">
 <dt id="daffy.vm.interpreter.ParserSyntaxError">
 <em class="property">exception </em><tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">ParserSyntaxError</tt><a class="reference internal" href="_modules/daffy/vm/interpreter.html#ParserSyntaxError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.interpreter.ParserSyntaxError" title="Permalink to this definition">¶</a></dt>
@@ -77,31 +219,7 @@ scheme:</p>
 <dd><p>The parser reached an undefined state</p>
 </dd></dl>
 
-<dl class="function">
-<dt id="daffy.vm.interpreter.instruction_parse">
-<tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">instruction_parse</tt><big>(</big><em>instr</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/interpreter.html#instruction_parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.interpreter.instruction_parse" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parse an instruction</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="daffy.vm.interpreter.instruction_schedule">
-<tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">instruction_schedule</tt><big>(</big><em>instruction</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/interpreter.html#instruction_schedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.interpreter.instruction_schedule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parse an instruction and schedule the resulting operation for
-execution</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="daffy.vm.interpreter.DVM_instruction_run">
-<tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">DVM_instruction_run</tt><big>(</big><em>instruction</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/interpreter.html#DVM_instruction_run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.interpreter.DVM_instruction_run" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run a single instruction</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="daffy.vm.interpreter.DVM_program_run">
-<tt class="descclassname">daffy.vm.interpreter.</tt><tt class="descname">DVM_program_run</tt><big>(</big><em>program</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/interpreter.html#DVM_program_run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.interpreter.DVM_program_run" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run a Daffy program</p>
-</dd></dl>
-
+</div>
 </div>
 
 
@@ -110,6 +228,17 @@ execution</p>
       </div>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#"><tt class="docutils literal"><span class="pre">interpreter</span></tt> &#8212; Parsing instructions and feeding the <tt class="docutils literal"><span class="pre">scheduler</span></tt></a><ul>
+<li><a class="reference internal" href="#parsing-state-machine">Parsing state machine</a></li>
+<li><a class="reference internal" href="#api-functions">API functions</a></li>
+<li><a class="reference internal" href="#internal-functions">Internal functions</a></li>
+<li><a class="reference internal" href="#exceptions">Exceptions</a></li>
+</ul>
+</li>
+</ul>
+
   <h4>Previous topic</h4>
   <p class="topless"><a href="cli.html"
                         title="previous chapter"><tt class="docutils literal docutils literal"><span class="pre">cli</span></tt> &#8212; Command line interface</a></p>

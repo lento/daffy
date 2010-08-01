@@ -5,4 +5,27 @@
     :synopsis: Parsing instructions and feeding the :mod:`Scheduler`
 
 .. automodule:: daffy.vm.interpreter
-   :members:
+
+API functions
+-------------
+
+.. autofunction:: DVM_instruction_run
+
+.. autofunction:: DVM_program_run
+
+
+Internal functions
+------------------
+
+.. autofunction:: instruction_parse
+
+.. autofunction:: instruction_schedule
+
+
+Exceptions
+----------
+
+.. autoexception:: ParserSyntaxError
+
+.. autoexception:: ParserUndefinedState
+

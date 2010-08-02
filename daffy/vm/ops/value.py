@@ -22,7 +22,7 @@
 
 `value` is a special operation that has no inputs and can be used to add
 literal values to the operations table.
-To create a `value` operation use the function :func:`DVM_value_create`
+To create a `value` operation use the function :func:`dvm_value_create`
 
 Inputs
 ------
@@ -36,7 +36,7 @@ value : value
 
 from daffy.vm.operations import OperationType, InputSocketType, OutputSocketType
 from daffy.vm.operations import Operation
-from daffy.vm.optypes import DVM_operation_type_register
+from daffy.vm.optypes import dvm_operation_type_register
 
 # inputs and outputs
 inputs = []
@@ -54,11 +54,11 @@ op = OperationType(
 )
 
 # function to create a `value` operation
-def DVM_value_create(name, val):
+def dvm_value_create(name, val):
     newval = Operation(op, name)
     newval.outputs[0].value = val
     return newval
 
 # register the operation
-DVM_operation_type_register(op)
+dvm_operation_type_register(op)
 

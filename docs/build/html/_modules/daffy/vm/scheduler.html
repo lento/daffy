@@ -97,7 +97,7 @@
 <span class="sd">    the scheduler is fed with operations</span>
 <span class="sd">                 |</span>
 <span class="sd">                 v</span>
-<span class="sd">    `DVM_scheduler_operation_add`</span>
+<span class="sd">    `dvm_scheduler_operation_add`</span>
 <span class="sd">    calls `op_append_to_table`</span>
 <span class="sd">                 |</span>
 <span class="sd">                 v</span>
@@ -110,10 +110,10 @@
 <span class="sd">                 |                                 operations from the</span>
 <span class="sd">                 v                                 `runnable_queue`, execute</span>
 <span class="sd">    when all operations has been fed to the        them and append them to</span>
-<span class="sd">    scheduler `DVM_scheduler_wait` is called       `finished_queue`</span>
+<span class="sd">    scheduler `dvm_scheduler_wait` is called       `finished_queue`</span>
 <span class="sd">    At this point there is a token in                        |</span>
 <span class="sd">    `waiting counter` for each operation that                v</span>
-<span class="sd">    needs execution, so `DVM_scheduler_wait`     the `updater` thread waits  </span>
+<span class="sd">    needs execution, so `dvm_scheduler_wait`     the `updater` thread waits  </span>
 <span class="sd">    just waits for `waiting_counter` to be       for `tokens` to be put in</span>
 <span class="sd">    empty                                        `waiting_counter`.</span>
 <span class="sd">                 |                               When it gets a `token`,</span>
@@ -129,14 +129,14 @@
 <span class="sd">                 +-----------------------------------------+</span>
 <span class="sd">                 |</span>
 <span class="sd">                 v</span>
-<span class="sd">    `DVM_scheduler_wait` returns</span>
+<span class="sd">    `dvm_scheduler_wait` returns</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">from</span> <span class="nn">threading</span> <span class="kn">import</span> <span class="n">Thread</span><span class="p">,</span> <span class="n">currentThread</span>
 <span class="kn">from</span> <span class="nn">Queue</span> <span class="kn">import</span> <span class="n">Queue</span>
-<span class="kn">from</span> <span class="nn">daffy.vm.optypes</span> <span class="kn">import</span> <span class="n">DVM_operation_type_find</span>
-<span class="kn">from</span> <span class="nn">daffy.vm.operations</span> <span class="kn">import</span> <span class="n">Operation</span><span class="p">,</span> <span class="n">DVM_operation_exec</span>
-<span class="kn">from</span> <span class="nn">daffy.vm.ops</span> <span class="kn">import</span> <span class="n">DVM_value_create</span>
+<span class="kn">from</span> <span class="nn">daffy.vm.optypes</span> <span class="kn">import</span> <span class="n">dvm_operation_type_find</span>
+<span class="kn">from</span> <span class="nn">daffy.vm.operations</span> <span class="kn">import</span> <span class="n">Operation</span><span class="p">,</span> <span class="n">dvm_operation_exec</span>
+<span class="kn">from</span> <span class="nn">daffy.vm.ops</span> <span class="kn">import</span> <span class="n">dvm_value_create</span>
 <span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
 
 <span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">logging</span>
@@ -190,7 +190,7 @@
             <span class="n">op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">runnable_queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
             <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&#39;&lt; </span><span class="si">%15s</span><span class="s"> &gt; </span><span class="si">%s</span><span class="s">executing in thread </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span>
                             <span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">SPACER</span> <span class="o">*</span> <span class="n">EXECUTING</span><span class="p">,</span> <span class="n">currentThread</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
-            <span class="n">DVM_operation_exec</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
+            <span class="n">dvm_operation_exec</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">finished_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">runnable_queue</span><span class="o">.</span><span class="n">task_done</span><span class="p">()</span>
 
@@ -211,7 +211,7 @@
             <span class="n">sched</span><span class="o">.</span><span class="n">waiting_counter</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
             <span class="n">op</span> <span class="o">=</span> <span class="n">sched</span><span class="o">.</span><span class="n">finished_queue</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
             <span class="n">op_set_as_finished</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">sched</span><span class="p">)</span>
-            <span class="n">DVM_scheduler_refresh</span><span class="p">(</span><span class="n">sched</span><span class="p">)</span>
+            <span class="n">dvm_scheduler_refresh</span><span class="p">(</span><span class="n">sched</span><span class="p">)</span>
             <span class="n">sched</span><span class="o">.</span><span class="n">finished_queue</span><span class="o">.</span><span class="n">task_done</span><span class="p">()</span>
             <span class="n">sched</span><span class="o">.</span><span class="n">waiting_counter</span><span class="o">.</span><span class="n">task_done</span><span class="p">()</span>
 
@@ -231,7 +231,7 @@
         <span class="c">#: operations fed to it</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">opstable</span> <span class="o">=</span> <span class="p">[]</span>
         
-        <span class="c">#: counter used by :func:`DVM_scheduler_wait` for thread syncronization</span>
+        <span class="c">#: counter used by :func:`dvm_scheduler_wait` for thread syncronization</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">waiting_counter</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">()</span>
         
         <span class="c">#: queue of operations that can be executed immediatly, as all their</span>
@@ -318,16 +318,16 @@
 
 
 <span class="c"># API</span></div>
-<div class="viewcode-block" id="DVM_scheduler_operation_add"><a class="viewcode-back" href="../../../scheduler.html#daffy.vm.scheduler.DVM_scheduler_operation_add">[docs]</a><span class="k">def</span> <span class="nf">DVM_scheduler_operation_add</span><span class="p">(</span><span class="nb">type</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
+<div class="viewcode-block" id="dvm_scheduler_operation_add"><a class="viewcode-back" href="../../../scheduler.html#daffy.vm.scheduler.dvm_scheduler_operation_add">[docs]</a><span class="k">def</span> <span class="nf">dvm_scheduler_operation_add</span><span class="p">(</span><span class="nb">type</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create an :class:`Operation` object, resolve its requirements and add it</span>
 <span class="sd">    to the :attr:`Scheduler.opstable`</span>
 <span class="sd">    </span>
 <span class="sd">    If all of its requirements are ready, append the operation to the</span>
 <span class="sd">    :attr:`Scheduler.runnable_queue` straight away, otherwise it will be</span>
 <span class="sd">    scheduled as runnable by the :class:`Updater` thread with</span>
-<span class="sd">    :func:`DVM_scheduler_refresh`</span>
+<span class="sd">    :func:`dvm_scheduler_refresh`</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">optype</span> <span class="o">=</span> <span class="n">DVM_operation_type_find</span><span class="p">(</span><span class="nb">type</span><span class="p">)</span>
+    <span class="n">optype</span> <span class="o">=</span> <span class="n">dvm_operation_type_find</span><span class="p">(</span><span class="nb">type</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">op_name_exists</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">OperationAlreadyExistsError</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 
@@ -337,7 +337,7 @@
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
             <span class="n">arg_name</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
-                <span class="n">op</span> <span class="o">=</span> <span class="n">DVM_value_create</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+                <span class="n">op</span> <span class="o">=</span> <span class="n">dvm_value_create</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
                 <span class="c"># this operation doesn&#39;t need to go through the engine, so we</span>
                 <span class="c"># put &quot;waiting=False&quot; and don&#39;t set is as &quot;runnable&quot;</span>
                 <span class="n">op_append_to_table</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">,</span> <span class="n">waiting</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
@@ -351,7 +351,7 @@
                 <span class="n">arg_name</span><span class="p">,</span> <span class="n">arg_value</span> <span class="o">=</span> <span class="n">arg</span>
                 <span class="n">valueop_name</span> <span class="o">=</span> <span class="s">&#39;_</span><span class="si">%s</span><span class="s">_arg_</span><span class="si">%i</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
                 <span class="n">valueop_args</span> <span class="o">=</span> <span class="p">((</span><span class="s">&#39;value&#39;</span><span class="p">,</span> <span class="n">arg_value</span><span class="p">),</span> <span class="p">)</span>
-                <span class="n">DVM_scheduler_operation_add</span><span class="p">(</span><span class="s">&#39;value&#39;</span><span class="p">,</span> <span class="n">valueop_name</span><span class="p">,</span>
+                <span class="n">dvm_scheduler_operation_add</span><span class="p">(</span><span class="s">&#39;value&#39;</span><span class="p">,</span> <span class="n">valueop_name</span><span class="p">,</span>
                                                         <span class="n">valueop_args</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
                 <span class="n">target</span> <span class="o">=</span> <span class="n">op_get</span><span class="p">(</span><span class="n">valueop_name</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
                 <span class="n">inputs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">arg_name</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="s">&#39;value&#39;</span><span class="p">))</span>
@@ -367,18 +367,18 @@
         <span class="n">op_requirements_set</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
 
         <span class="c"># if all requirements are ready we set it as &quot;runnable&quot; stright away</span>
-        <span class="c"># otherwise it will be set as &quot;runnable&quot; by DVM_scheduler_refresh</span>
+        <span class="c"># otherwise it will be set as &quot;runnable&quot; by dvm_scheduler_refresh</span>
         <span class="k">if</span> <span class="n">op_is_runnable</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
             <span class="n">op_set_as_runnable</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
 </div>
-<div class="viewcode-block" id="DVM_scheduler_refresh"><a class="viewcode-back" href="../../../scheduler.html#daffy.vm.scheduler.DVM_scheduler_refresh">[docs]</a><span class="k">def</span> <span class="nf">DVM_scheduler_refresh</span><span class="p">(</span><span class="n">scheduler</span><span class="p">):</span>
+<div class="viewcode-block" id="dvm_scheduler_refresh"><a class="viewcode-back" href="../../../scheduler.html#daffy.vm.scheduler.dvm_scheduler_refresh">[docs]</a><span class="k">def</span> <span class="nf">dvm_scheduler_refresh</span><span class="p">(</span><span class="n">scheduler</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Find which operations in the :attr:`Scheduler.opstable` can be run and</span>
 <span class="sd">    append them to the :attr:`Scheduler.runnable_queue`&quot;&quot;&quot;</span>
     <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">scheduler</span><span class="o">.</span><span class="n">opstable</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">op</span><span class="o">.</span><span class="n">finished</span> <span class="ow">and</span> <span class="n">op_is_runnable</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
             <span class="n">op_set_as_runnable</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
 </div>
-<div class="viewcode-block" id="DVM_scheduler_wait"><a class="viewcode-back" href="../../../scheduler.html#daffy.vm.scheduler.DVM_scheduler_wait">[docs]</a><span class="k">def</span> <span class="nf">DVM_scheduler_wait</span><span class="p">(</span><span class="n">scheduler</span><span class="p">):</span>
+<div class="viewcode-block" id="dvm_scheduler_wait"><a class="viewcode-back" href="../../../scheduler.html#daffy.vm.scheduler.dvm_scheduler_wait">[docs]</a><span class="k">def</span> <span class="nf">dvm_scheduler_wait</span><span class="p">(</span><span class="n">scheduler</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wait for all operations to execute joining the scheduler&#39;s</span>
 <span class="sd">    ``waiting_counter`` queue</span>
 <span class="sd">    </span>

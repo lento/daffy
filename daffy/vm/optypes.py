@@ -32,12 +32,12 @@ class OperationTypeNotFoundError(Exception):
 # Operation types list
 optypes = []
 
-def DVM_operation_type_register(op):
+def dvm_operation_type_register(op):
     """Register a new type in the `optypes` list"""
     if op not in optypes:
         optypes.append(op)
 
-def DVM_operation_type_find(type):
+def dvm_operation_type_find(type):
     """Return an optype from the list of registered types"""
     for optype in optypes:
         if optype.name == type:

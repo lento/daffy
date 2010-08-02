@@ -33,8 +33,8 @@ Outputs
 """
 
 from daffy.vm.operations import OperationType, InputSocketType, OutputSocketType
-from daffy.vm.operations import DVM_input_value_get
-from daffy.vm.optypes import DVM_operation_type_register
+from daffy.vm.operations import dvm_input_value_get
+from daffy.vm.optypes import dvm_operation_type_register
 
 # inputs and outputs
 inputs = [
@@ -45,7 +45,7 @@ outputs = []
 
 # execfunc
 def execfunc(self):
-    val = DVM_input_value_get(self, 'value')
+    val = dvm_input_value_get(self, 'value')
 
     print(val)
 
@@ -58,5 +58,5 @@ op = OperationType(
 )
 
 # register the operation
-DVM_operation_type_register(op)
+dvm_operation_type_register(op)
 

@@ -78,7 +78,7 @@ counter and removing the finished operation from their
 <div class="highlight-python"><pre>the scheduler is fed with operations
              |
              v
-`DVM_scheduler_operation_add`
+`dvm_scheduler_operation_add`
 calls `op_append_to_table`
              |
              v
@@ -91,10 +91,10 @@ requirements are ready                         `worker` threads pick
              |                                 operations from the
              v                                 `runnable_queue`, execute
 when all operations has been fed to the        them and append them to
-scheduler `DVM_scheduler_wait` is called       `finished_queue`
+scheduler `dvm_scheduler_wait` is called       `finished_queue`
 At this point there is a token in                        |
 `waiting counter` for each operation that                v
-needs execution, so `DVM_scheduler_wait`     the `updater` thread waits  
+needs execution, so `dvm_scheduler_wait`     the `updater` thread waits  
 just waits for `waiting_counter` to be       for `tokens` to be put in
 empty                                        `waiting_counter`.
              |                               When it gets a `token`,
@@ -110,7 +110,7 @@ empty                                        `waiting_counter`.
              +-----------------------------------------+
              |
              v
-`DVM_scheduler_wait` returns</pre>
+`dvm_scheduler_wait` returns</pre>
 </div>
 <div class="section" id="scheduler-object">
 <h2>Scheduler Object<a class="headerlink" href="#scheduler-object" title="Permalink to this headline">¶</a></h2>
@@ -133,7 +133,7 @@ operations fed to it</p>
 <dl class="attribute">
 <dt id="daffy.vm.scheduler.Scheduler.waiting_counter">
 <tt class="descname">waiting_counter</tt><a class="headerlink" href="#daffy.vm.scheduler.Scheduler.waiting_counter" title="Permalink to this definition">¶</a></dt>
-<dd><p>counter used by <a class="reference internal" href="#daffy.vm.scheduler.DVM_scheduler_wait" title="daffy.vm.scheduler.DVM_scheduler_wait"><tt class="xref py py-func docutils literal"><span class="pre">DVM_scheduler_wait()</span></tt></a> for thread syncronization</p>
+<dd><p>counter used by <a class="reference internal" href="#daffy.vm.scheduler.dvm_scheduler_wait" title="daffy.vm.scheduler.dvm_scheduler_wait"><tt class="xref py py-func docutils literal"><span class="pre">dvm_scheduler_wait()</span></tt></a> for thread syncronization</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -185,26 +185,26 @@ ready to be updated by the <a class="reference internal" href="#daffy.vm.schedul
 <div class="section" id="api-functions">
 <h2>API functions<a class="headerlink" href="#api-functions" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="daffy.vm.scheduler.DVM_scheduler_operation_add">
-<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">DVM_scheduler_operation_add</tt><big>(</big><em>type</em>, <em>name</em>, <em>args</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#DVM_scheduler_operation_add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.DVM_scheduler_operation_add" title="Permalink to this definition">¶</a></dt>
+<dt id="daffy.vm.scheduler.dvm_scheduler_operation_add">
+<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">dvm_scheduler_operation_add</tt><big>(</big><em>type</em>, <em>name</em>, <em>args</em>, <em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#dvm_scheduler_operation_add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.dvm_scheduler_operation_add" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create an <tt class="xref py py-class docutils literal"><span class="pre">Operation</span></tt> object, resolve its requirements and add it
 to the <a class="reference internal" href="#daffy.vm.scheduler.Scheduler.opstable" title="daffy.vm.scheduler.Scheduler.opstable"><tt class="xref py py-attr docutils literal"><span class="pre">Scheduler.opstable</span></tt></a></p>
 <p>If all of its requirements are ready, append the operation to the
 <a class="reference internal" href="#daffy.vm.scheduler.Scheduler.runnable_queue" title="daffy.vm.scheduler.Scheduler.runnable_queue"><tt class="xref py py-attr docutils literal"><span class="pre">Scheduler.runnable_queue</span></tt></a> straight away, otherwise it will be
 scheduled as runnable by the <a class="reference internal" href="#daffy.vm.scheduler.Updater" title="daffy.vm.scheduler.Updater"><tt class="xref py py-class docutils literal"><span class="pre">Updater</span></tt></a> thread with
-<a class="reference internal" href="#daffy.vm.scheduler.DVM_scheduler_refresh" title="daffy.vm.scheduler.DVM_scheduler_refresh"><tt class="xref py py-func docutils literal"><span class="pre">DVM_scheduler_refresh()</span></tt></a></p>
+<a class="reference internal" href="#daffy.vm.scheduler.dvm_scheduler_refresh" title="daffy.vm.scheduler.dvm_scheduler_refresh"><tt class="xref py py-func docutils literal"><span class="pre">dvm_scheduler_refresh()</span></tt></a></p>
 </dd></dl>
 
 <dl class="function">
-<dt id="daffy.vm.scheduler.DVM_scheduler_refresh">
-<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">DVM_scheduler_refresh</tt><big>(</big><em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#DVM_scheduler_refresh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.DVM_scheduler_refresh" title="Permalink to this definition">¶</a></dt>
+<dt id="daffy.vm.scheduler.dvm_scheduler_refresh">
+<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">dvm_scheduler_refresh</tt><big>(</big><em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#dvm_scheduler_refresh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.dvm_scheduler_refresh" title="Permalink to this definition">¶</a></dt>
 <dd><p>Find which operations in the <a class="reference internal" href="#daffy.vm.scheduler.Scheduler.opstable" title="daffy.vm.scheduler.Scheduler.opstable"><tt class="xref py py-attr docutils literal"><span class="pre">Scheduler.opstable</span></tt></a> can be run and
 append them to the <a class="reference internal" href="#daffy.vm.scheduler.Scheduler.runnable_queue" title="daffy.vm.scheduler.Scheduler.runnable_queue"><tt class="xref py py-attr docutils literal"><span class="pre">Scheduler.runnable_queue</span></tt></a></p>
 </dd></dl>
 
 <dl class="function">
-<dt id="daffy.vm.scheduler.DVM_scheduler_wait">
-<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">DVM_scheduler_wait</tt><big>(</big><em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#DVM_scheduler_wait"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.DVM_scheduler_wait" title="Permalink to this definition">¶</a></dt>
+<dt id="daffy.vm.scheduler.dvm_scheduler_wait">
+<tt class="descclassname">daffy.vm.scheduler.</tt><tt class="descname">dvm_scheduler_wait</tt><big>(</big><em>scheduler</em><big>)</big><a class="reference internal" href="_modules/daffy/vm/scheduler.html#dvm_scheduler_wait"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#daffy.vm.scheduler.dvm_scheduler_wait" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wait for all operations to execute joining the scheduler&#8217;s
 <tt class="docutils literal"><span class="pre">waiting_counter</span></tt> queue</p>
 <div class="admonition-see-also admonition seealso">
@@ -312,7 +312,7 @@ executing and its ouputs are ready for use</p>
 
   <h4>Previous topic</h4>
   <p class="topless"><a href="interpreter.html"
-                        title="previous chapter"><tt class="docutils literal docutils literal"><span class="pre">interpreter</span></tt> &#8212; Parsing instructions and feeding the <tt class="docutils literal docutils literal"><span class="pre">scheduler</span></tt></a></p>
+                        title="previous chapter"><tt class="docutils literal docutils literal docutils literal"><span class="pre">interpreter</span></tt> &#8212; Parsing instructions and feeding the <tt class="docutils literal docutils literal docutils literal"><span class="pre">scheduler</span></tt></a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="optypes.html"
                         title="next chapter">Operation Types</a></p>

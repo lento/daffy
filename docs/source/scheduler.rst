@@ -27,11 +27,11 @@ Scheduler Threads
 API functions
 -------------
 
-.. autofunction:: DVM_scheduler_operation_add
+.. autofunction:: dvm_scheduler_operation_add
 
-.. autofunction:: DVM_scheduler_refresh
+.. autofunction:: dvm_scheduler_refresh
 
-.. autofunction:: DVM_scheduler_wait
+.. autofunction:: dvm_scheduler_wait
 
 
 Internal functions

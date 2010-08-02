@@ -80,12 +80,12 @@
 <span class="c"># Operation types list</span></div>
 <span class="n">optypes</span> <span class="o">=</span> <span class="p">[]</span>
 
-<div class="viewcode-block" id="DVM_operation_type_register"><a class="viewcode-back" href="../../../optypes.html#daffy.vm.optypes.DVM_operation_type_register">[docs]</a><span class="k">def</span> <span class="nf">DVM_operation_type_register</span><span class="p">(</span><span class="n">op</span><span class="p">):</span>
+<div class="viewcode-block" id="dvm_operation_type_register"><a class="viewcode-back" href="../../../optypes.html#daffy.vm.optypes.dvm_operation_type_register">[docs]</a><span class="k">def</span> <span class="nf">dvm_operation_type_register</span><span class="p">(</span><span class="n">op</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Register a new type in the `optypes` list&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">optypes</span><span class="p">:</span>
         <span class="n">optypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
 </div>
-<div class="viewcode-block" id="DVM_operation_type_find"><a class="viewcode-back" href="../../../optypes.html#daffy.vm.optypes.DVM_operation_type_find">[docs]</a><span class="k">def</span> <span class="nf">DVM_operation_type_find</span><span class="p">(</span><span class="nb">type</span><span class="p">):</span>
+<div class="viewcode-block" id="dvm_operation_type_find"><a class="viewcode-back" href="../../../optypes.html#daffy.vm.optypes.dvm_operation_type_find">[docs]</a><span class="k">def</span> <span class="nf">dvm_operation_type_find</span><span class="p">(</span><span class="nb">type</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Return an optype from the list of registered types&quot;&quot;&quot;</span>
     <span class="k">for</span> <span class="n">optype</span> <span class="ow">in</span> <span class="n">optypes</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">optype</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="nb">type</span><span class="p">:</span>

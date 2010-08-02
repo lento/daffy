@@ -81,7 +81,7 @@ FINISH        -2    instruction parsed succesfully
 
 import re, sys, logging
 from daffy.vm.optypes import optypes
-from daffy.vm.scheduler import DVM_scheduler_operation_add, DVM_scheduler_wait
+from daffy.vm.scheduler import dvm_scheduler_operation_add, dvm_scheduler_wait
 
 logging.basicConfig(stream=sys.stderr, level=logging.ERROR)
 log = logging.getLogger(__name__)
@@ -312,7 +312,7 @@ def instruction_schedule(instruction, scheduler):
     """
     try:
         optype, name, args = instruction_parse(instruction)
-        DVM_scheduler_operation_add(optype, name, args, scheduler)
+        dvm_scheduler_operation_add(optype, name, args, scheduler)
     except ParserSyntaxError, error:
         log.error('SyntaxError: %s' % error)
         return 1
@@ -320,13 +320,13 @@ def instruction_schedule(instruction, scheduler):
 
 
 # API
-def DVM_instruction_run(instruction, scheduler):
+def dvm_instruction_run(instruction, scheduler):
     """Run a single instruction"""
     retval = instruction_schedule(instruction, scheduler)
-    DVM_scheduler_wait(scheduler)
+    dvm_scheduler_wait(scheduler)
     return retval
 
-def DVM_program_run(program, scheduler):
+def dvm_program_run(program, scheduler):
     """Run a Daffy program
 
     the program must be a sequence of lines, one instruction per line
@@ -334,7 +334,7 @@ def DVM_program_run(program, scheduler):
     result = 0
     for instruction in program:
         result += instruction_schedule(instruction, scheduler)
-    DVM_scheduler_wait(scheduler)
+    dvm_scheduler_wait(scheduler)
     return result == 0 and 0 or 1
 
 

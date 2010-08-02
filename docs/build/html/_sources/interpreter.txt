@@ -9,9 +9,9 @@
 API functions
 -------------
 
-.. autofunction:: DVM_instruction_run
+.. autofunction:: dvm_instruction_run
 
-.. autofunction:: DVM_program_run
+.. autofunction:: dvm_program_run
 
 
 Internal functions

@@ -12,5 +12,5 @@ A command line interface to run **Daffy** programs from files
 .. function:: main()
 
     Parse args, setup a :class:`Scheduler` object, and use 
-    :func:`DVM_program_run` to feed the contents of a Daffy file to the
+    :func:`dvm_program_run` to feed the contents of a Daffy file to the
     scheduler

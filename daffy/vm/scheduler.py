@@ -49,7 +49,7 @@ The thread syncronization mechanism works like this::
     the scheduler is fed with operations
                  |
                  v
-    `DVM_scheduler_operation_add`
+    `dvm_scheduler_operation_add`
     calls `op_append_to_table`
                  |
                  v
@@ -62,10 +62,10 @@ The thread syncronization mechanism works like this::
                  |                                 operations from the
                  v                                 `runnable_queue`, execute
     when all operations has been fed to the        them and append them to
-    scheduler `DVM_scheduler_wait` is called       `finished_queue`
+    scheduler `dvm_scheduler_wait` is called       `finished_queue`
     At this point there is a token in                        |
     `waiting counter` for each operation that                v
-    needs execution, so `DVM_scheduler_wait`     the `updater` thread waits  
+    needs execution, so `dvm_scheduler_wait`     the `updater` thread waits  
     just waits for `waiting_counter` to be       for `tokens` to be put in
     empty                                        `waiting_counter`.
                  |                               When it gets a `token`,
@@ -81,14 +81,14 @@ The thread syncronization mechanism works like this::
                  +-----------------------------------------+
                  |
                  v
-    `DVM_scheduler_wait` returns
+    `dvm_scheduler_wait` returns
 """
 
 from threading import Thread, currentThread
 from Queue import Queue
-from daffy.vm.optypes import DVM_operation_type_find
-from daffy.vm.operations import Operation, DVM_operation_exec
-from daffy.vm.ops import DVM_value_create
+from daffy.vm.optypes import dvm_operation_type_find
+from daffy.vm.operations import Operation, dvm_operation_exec
+from daffy.vm.ops import dvm_value_create
 from time import sleep
 
 import sys, logging
@@ -142,7 +142,7 @@ class Worker(Thread):
             op = self.scheduler.runnable_queue.get()
             log.debug('< %15s > %sexecuting in thread %s' % (
                             op.name, SPACER * EXECUTING, currentThread().name))
-            DVM_operation_exec(op)
+            dvm_operation_exec(op)
             self.scheduler.finished_queue.put(op)
             self.scheduler.runnable_queue.task_done()
 
@@ -163,7 +163,7 @@ class Updater(Thread):
             sched.waiting_counter.get()
             op = sched.finished_queue.get(timeout=5)
             op_set_as_finished(op, sched)
-            DVM_scheduler_refresh(sched)
+            dvm_scheduler_refresh(sched)
             sched.finished_queue.task_done()
             sched.waiting_counter.task_done()
 
@@ -183,7 +183,7 @@ class Scheduler(object):
         #: operations fed to it
         self.opstable = []
         
-        #: counter used by :func:`DVM_scheduler_wait` for thread syncronization
+        #: counter used by :func:`dvm_scheduler_wait` for thread syncronization
         self.waiting_counter = Queue()
         
         #: queue of operations that can be executed immediatly, as all their
@@ -270,16 +270,16 @@ def op_set_as_finished(op, scheduler):
 
 
 # API
-def DVM_scheduler_operation_add(type, name, args, scheduler):
+def dvm_scheduler_operation_add(type, name, args, scheduler):
     """Create an :class:`Operation` object, resolve its requirements and add it
     to the :attr:`Scheduler.opstable`
     
     If all of its requirements are ready, append the operation to the
     :attr:`Scheduler.runnable_queue` straight away, otherwise it will be
     scheduled as runnable by the :class:`Updater` thread with
-    :func:`DVM_scheduler_refresh`
+    :func:`dvm_scheduler_refresh`
     """
-    optype = DVM_operation_type_find(type)
+    optype = dvm_operation_type_find(type)
     if op_name_exists(name, scheduler):
         raise OperationAlreadyExistsError(name)
 
@@ -289,7 +289,7 @@ def DVM_scheduler_operation_add(type, name, args, scheduler):
         if len(args) == 1 and len(args[0]) == 2:
             arg_name, value = args[0]
             if isinstance(value, float):
-                op = DVM_value_create(name, value)
+                op = dvm_value_create(name, value)
                 # this operation doesn't need to go through the engine, so we
                 # put "waiting=False" and don't set is as "runnable"
                 op_append_to_table(op, scheduler, waiting=False)
@@ -303,7 +303,7 @@ def DVM_scheduler_operation_add(type, name, args, scheduler):
                 arg_name, arg_value = arg
                 valueop_name = '_%s_arg_%i' % (name, i)
                 valueop_args = (('value', arg_value), )
-                DVM_scheduler_operation_add('value', valueop_name,
+                dvm_scheduler_operation_add('value', valueop_name,
                                                         valueop_args, scheduler)
                 target = op_get(valueop_name, scheduler)
                 inputs.append((arg_name, target, 'value'))
@@ -319,18 +319,18 @@ def DVM_scheduler_operation_add(type, name, args, scheduler):
         op_requirements_set(op, scheduler)
 
         # if all requirements are ready we set it as "runnable" stright away
-        # otherwise it will be set as "runnable" by DVM_scheduler_refresh
+        # otherwise it will be set as "runnable" by dvm_scheduler_refresh
         if op_is_runnable(op, scheduler):
             op_set_as_runnable(op, scheduler)
 
-def DVM_scheduler_refresh(scheduler):
+def dvm_scheduler_refresh(scheduler):
     """Find which operations in the :attr:`Scheduler.opstable` can be run and
     append them to the :attr:`Scheduler.runnable_queue`"""
     for op in scheduler.opstable:
         if not op.finished and op_is_runnable(op, scheduler):
             op_set_as_runnable(op, scheduler)
 
-def DVM_scheduler_wait(scheduler):
+def dvm_scheduler_wait(scheduler):
     """Wait for all operations to execute joining the scheduler's
     ``waiting_counter`` queue
     

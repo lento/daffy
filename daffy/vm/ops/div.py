@@ -36,8 +36,8 @@ result : value
 """
 
 from daffy.vm.operations import OperationType, InputSocketType, OutputSocketType
-from daffy.vm.operations import DVM_input_value_get, DVM_output_socket
-from daffy.vm.optypes import DVM_operation_type_register
+from daffy.vm.operations import dvm_input_value_get, dvm_output_socket
+from daffy.vm.optypes import dvm_operation_type_register
 
 # inputs and outputs
 inputs = [
@@ -51,9 +51,9 @@ outputs = [
 
 # execfunc
 def execfunc(self):
-    a = DVM_input_value_get(self, 'a')
-    b = DVM_input_value_get(self, 'b')
-    out_result = DVM_output_socket(self, 'result')
+    a = dvm_input_value_get(self, 'a')
+    b = dvm_input_value_get(self, 'b')
+    out_result = dvm_output_socket(self, 'result')
 
     out_result.value = a / b
 
@@ -66,5 +66,5 @@ op = OperationType(
 )
 
 # register the operation
-DVM_operation_type_register(op)
+dvm_operation_type_register(op)
 

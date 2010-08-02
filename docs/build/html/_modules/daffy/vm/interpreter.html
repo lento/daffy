@@ -66,17 +66,70 @@
 <span class="c"># Original Copyright (c) 2010, Lorenzo Pierfederici &lt;lpierfederici@gmail.com&gt;</span>
 <span class="c"># Contributor(s): </span>
 <span class="c">#</span>
-<span class="sd">&quot;&quot;&quot;This is a basic interpreter for Daffy assembly code.</span>
+<span class="sd">&quot;&quot;&quot;A basic interpreter for *daffy* assembly code.</span>
 <span class="sd">The interpreter expects instructions in the form::</span>
 
-<span class="sd">    $name: optype([argname=$target.attr | &lt;float value&gt;], ...)</span>
+<span class="sd">    $name: optype([argname=$target.attr | &lt;float value&gt;], ...) comment</span>
 
 <span class="sd">one instruction per line.</span>
+
+<span class="sd">.. _parsing_state_machine:</span>
+
+<span class="sd">Parsing state machine</span>
+<span class="sd">---------------------</span>
+
+<span class="sd">.. image:: _static/state_machine.png</span>
+
+<span class="sd">the parser is a simple state machine that goes over the instruction a</span>
+<span class="sd">character at a time and, depending on the input, goes through the different</span>
+<span class="sd">states until the instruction is succesfully parsed or an error occurs. Each</span>
+<span class="sd">instruction is distilled in a tuple::</span>
+
+<span class="sd">    (optype, name, args)</span>
+
+<span class="sd">that can be fed to the :mod:`scheduler` to create an :class:`Operation`</span>
+<span class="sd">object and process it.</span>
+<span class="sd">*optype* is a string indicating the requested :class:`OperationType`,</span>
+<span class="sd">*name* is the name for this operation in the scheduler&#39;s</span>
+<span class="sd">:attr:`opstable &lt;daffy.vm.scheduler.Scheduler.opstable&gt;`</span>
+<span class="sd">and *args* is a list of arguments in the form::</span>
+
+<span class="sd">    (arg_name, arg_target, arg_attribute) | (arg_name, &lt;flot value&gt;)</span>
+
+<span class="sd">in the first case *arg_name* is the name one of the</span>
+<span class="sd">:attr:`Operation.inputs`, *arg_target* is the name indicating the operation</span>
+<span class="sd">connected to this input and *arg_attribute* is the name of the soket in</span>
+<span class="sd">:attr:`Operation.outputs` we are fetching the value from.</span>
+
+<span class="sd">Here is a list of the parser states:</span>
+
+<span class="sd">============= ===== ====================================================</span>
+<span class="sd">Status        Value Description</span>
+<span class="sd">============= ===== ====================================================</span>
+<span class="sd">START         0     starting</span>
+<span class="sd">DOLLAR        1     received a &quot;$&quot; character</span>
+<span class="sd">NAME          2     accumulating a string for the operation name</span>
+<span class="sd">COLON         3     received a &quot;:&quot; character (and optional whitespace)</span>
+<span class="sd">OPTYPE        4     accumulating a string for the operation type</span>
+<span class="sd">ARGS          5     received a &quot;(&quot; character</span>
+<span class="sd">ARGS_NAME     6     accumulating a string for an argument name</span>
+<span class="sd">ARGS_EQUAL    7     received a &quot;=&quot; character while scanning args</span>
+<span class="sd">ARGS_DOLLAR   8     received a &quot;$&quot; character while scanning args</span>
+<span class="sd">ARGS_TARGET   9     accumulating a string for the target operation</span>
+<span class="sd">ARGS_DOT      10    received a &quot;.&quot; character while scanning args</span>
+<span class="sd">ARGS_ATTR     11    accumulating a string for the target attribute</span>
+<span class="sd">ARGS_COMMA    12    received a &quot;,&quot; character (and optionale whitespaces)</span>
+<span class="sd">ARGS_FLOAT    13    accumulating a string representing a floating number</span>
+<span class="sd">FLOAT_DOT     14    received a &quot;.&quot; character while scanning a float</span>
+<span class="sd">FLOAT_DECIMAL 15    accumulating a string representing the decimal part</span>
+<span class="sd">ERROR         -1    an error occured</span>
+<span class="sd">FINISH        -2    instruction parsed succesfully</span>
+<span class="sd">============= ===== ====================================================</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">re</span><span class="o">,</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">logging</span>
 <span class="kn">from</span> <span class="nn">daffy.vm.optypes</span> <span class="kn">import</span> <span class="n">optypes</span>
-<span class="kn">from</span> <span class="nn">daffy.vm.scheduler</span> <span class="kn">import</span> <span class="n">DVM_scheduler_operation_add</span><span class="p">,</span> <span class="n">DVM_scheduler_wait</span>
+<span class="kn">from</span> <span class="nn">daffy.vm.scheduler</span> <span class="kn">import</span> <span class="n">dvm_scheduler_operation_add</span><span class="p">,</span> <span class="n">dvm_scheduler_wait</span>
 
 <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">stream</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
 <span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
@@ -107,10 +160,16 @@
 <span class="n">ARGS_FLOAT</span>    <span class="o">=</span> <span class="mi">13</span>
 <span class="n">FLOAT_DOT</span>     <span class="o">=</span> <span class="mi">14</span>
 <span class="n">FLOAT_DECIMAL</span> <span class="o">=</span> <span class="mi">15</span>
+<span class="n">ERROR</span>         <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+<span class="n">FINISH</span>        <span class="o">=</span> <span class="o">-</span><span class="mi">2</span>
 
 <span class="c"># internal use</span>
 <div class="viewcode-block" id="instruction_parse"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.instruction_parse">[docs]</a><span class="k">def</span> <span class="nf">instruction_parse</span><span class="p">(</span><span class="n">instr</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Parse an instruction&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Parse an instruction</span>
+
+<span class="sd">    .. seealso::</span>
+<span class="sd">        :ref:`parsing_state_machine` for details on the parsing process</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">state</span> <span class="o">=</span> <span class="n">START</span>
 
     <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
@@ -120,7 +179,7 @@
     <span class="n">arg_target</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
     <span class="n">arg_attr</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
     <span class="n">arg_float</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
-    
+
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">instr</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">state</span> <span class="o">==</span> <span class="n">START</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;$&#39;</span><span class="p">:</span>
@@ -170,9 +229,7 @@
                 <span class="n">arg_name</span> <span class="o">+=</span> <span class="n">c</span>
                 <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS_NAME</span>
             <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;)&#39;</span><span class="p">:</span>
-                <span class="c"># the operation definition ended, we ignore the rest of the</span>
-                <span class="c"># instruction, so it can be used for comments</span>
-                <span class="k">break</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">FINISH</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
                 <span class="n">err</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting an argument name or &quot;)&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
@@ -229,11 +286,8 @@
                 <span class="n">arg_name</span> <span class="o">=</span> <span class="n">arg_target</span> <span class="o">=</span> <span class="n">arg_attr</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
                 <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS_COMMA</span>
             <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;)&#39;</span><span class="p">:</span>
-                <span class="c"># the operation definition ended, we ignore the rest of the</span>
-                <span class="c"># instruction, so it can be used for comments</span>
                 <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">arg_name</span><span class="p">,</span> <span class="n">arg_target</span><span class="p">,</span> <span class="n">arg_attr</span><span class="p">))</span>
-                <span class="n">arg_name</span> <span class="o">=</span> <span class="n">arg_target</span> <span class="o">=</span> <span class="n">arg_attr</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
-                <span class="k">break</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">FINISH</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
                 <span class="n">err</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting &quot;,&quot; or &quot;)&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
@@ -259,11 +313,8 @@
                 <span class="n">arg_name</span> <span class="o">=</span> <span class="n">arg_float</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
                 <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS_COMMA</span>
             <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;)&#39;</span><span class="p">:</span>
-                <span class="c"># the operation definition ended, we ignore the rest of the</span>
-                <span class="c"># instruction, so it can be used for comments</span>
                 <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">arg_name</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">arg_float</span><span class="p">)))</span>
-                <span class="n">arg_name</span> <span class="o">=</span> <span class="n">arg_float</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
-                <span class="k">break</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">FINISH</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
                 <span class="n">err</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting a digit, &quot;.&quot;, &quot;,&quot; or &quot;)&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
@@ -284,18 +335,23 @@
                 <span class="n">arg_name</span> <span class="o">=</span> <span class="n">arg_float</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
                 <span class="n">state</span> <span class="o">=</span> <span class="n">ARGS_COMMA</span>
             <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s">&#39;)&#39;</span><span class="p">:</span>
-                <span class="c"># the operation definition ended, we ignore the rest of the</span>
-                <span class="c"># instruction, so it can be used for comments</span>
                 <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">arg_name</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">arg_float</span><span class="p">)))</span>
-                <span class="n">arg_name</span> <span class="o">=</span> <span class="n">arg_float</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
-                <span class="k">break</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">FINISH</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
                 <span class="n">err</span> <span class="o">=</span> <span class="s">&#39;at char </span><span class="si">%i</span><span class="s">: expecting a digit, &quot;,&quot; or &quot;)&quot;&#39;</span> <span class="o">%</span> <span class="n">i</span>
                 <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">instr</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">ParserUndefinedState</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
-    
+
+        <span class="k">if</span> <span class="n">state</span> <span class="o">==</span> <span class="n">FINISH</span><span class="p">:</span>
+            <span class="c"># the operation definition ended, we ignore the rest of the</span>
+            <span class="c"># instruction, so it can be used for comments</span>
+            <span class="k">break</span>
+        <span class="k">if</span> <span class="n">state</span> <span class="o">==</span> <span class="n">ERROR</span><span class="p">:</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">^&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;-&#39;</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ParserSyntaxError</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">instr</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+
     <span class="k">return</span> <span class="n">optype</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span>
 </div>
 <div class="viewcode-block" id="instruction_schedule"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.instruction_schedule">[docs]</a><span class="k">def</span> <span class="nf">instruction_schedule</span><span class="p">(</span><span class="n">instruction</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
@@ -304,7 +360,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">optype</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="n">instruction_parse</span><span class="p">(</span><span class="n">instruction</span><span class="p">)</span>
-        <span class="n">DVM_scheduler_operation_add</span><span class="p">(</span><span class="n">optype</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
+        <span class="n">dvm_scheduler_operation_add</span><span class="p">(</span><span class="n">optype</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
     <span class="k">except</span> <span class="n">ParserSyntaxError</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span>
         <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&#39;SyntaxError: </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">error</span><span class="p">)</span>
         <span class="k">return</span> <span class="mi">1</span>
@@ -312,18 +368,21 @@
 
 
 <span class="c"># API</span></div>
-<div class="viewcode-block" id="DVM_instruction_run"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.DVM_instruction_run">[docs]</a><span class="k">def</span> <span class="nf">DVM_instruction_run</span><span class="p">(</span><span class="n">instruction</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
+<div class="viewcode-block" id="dvm_instruction_run"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.dvm_instruction_run">[docs]</a><span class="k">def</span> <span class="nf">dvm_instruction_run</span><span class="p">(</span><span class="n">instruction</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Run a single instruction&quot;&quot;&quot;</span>
     <span class="n">retval</span> <span class="o">=</span> <span class="n">instruction_schedule</span><span class="p">(</span><span class="n">instruction</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
-    <span class="n">DVM_scheduler_wait</span><span class="p">(</span><span class="n">scheduler</span><span class="p">)</span>
+    <span class="n">dvm_scheduler_wait</span><span class="p">(</span><span class="n">scheduler</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">retval</span>
 </div>
-<div class="viewcode-block" id="DVM_program_run"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.DVM_program_run">[docs]</a><span class="k">def</span> <span class="nf">DVM_program_run</span><span class="p">(</span><span class="n">program</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Run a Daffy program&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="dvm_program_run"><a class="viewcode-back" href="../../../interpreter.html#daffy.vm.interpreter.dvm_program_run">[docs]</a><span class="k">def</span> <span class="nf">dvm_program_run</span><span class="p">(</span><span class="n">program</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Run a Daffy program</span>
+
+<span class="sd">    the program must be a sequence of lines, one instruction per line</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">result</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">for</span> <span class="n">instruction</span> <span class="ow">in</span> <span class="n">program</span><span class="p">:</span>
         <span class="n">result</span> <span class="o">+=</span> <span class="n">instruction_schedule</span><span class="p">(</span><span class="n">instruction</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
-    <span class="n">DVM_scheduler_wait</span><span class="p">(</span><span class="n">scheduler</span><span class="p">)</span>
+    <span class="n">dvm_scheduler_wait</span><span class="p">(</span><span class="n">scheduler</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">result</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="mi">0</span> <span class="ow">or</span> <span class="mi">1</span>
 </pre></div></div>
 

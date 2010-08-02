@@ -120,27 +120,27 @@ class Operation(object):
 
 
 # API
-def DVM_input_socket(op, name):
+def dvm_input_socket(op, name):
     for socket in op.inputs:
         if socket.name == name:
             return socket
     raise InputSocketNotFoundError(name)
 
-def DVM_input_value_get(op, name):
-    sock = DVM_input_socket(op, name)
+def dvm_input_value_get(op, name):
+    sock = dvm_input_socket(op, name)
     if sock.op:
-        source = DVM_output_socket(sock.op, sock.attr)
+        source = dvm_output_socket(sock.op, sock.attr)
         return source.value
     else:
         return sock.typeinfo.default
 
-def DVM_output_socket(op, name):
+def dvm_output_socket(op, name):
     for socket in op.outputs:
         if socket.name == name:
             return socket
     raise OutputSocketNotFoundError(name)
 
-def DVM_operation_exec(op):
+def dvm_operation_exec(op):
     """Run the operation `execfunc`"""
     op.typeinfo.execfunc(op)
 

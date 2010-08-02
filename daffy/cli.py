@@ -25,7 +25,7 @@
 import sys, logging
 from optparse import OptionParser
 from daffy.vm.scheduler import Scheduler
-from daffy.vm.interpreter import DVM_program_run, DVM_instruction_run
+from daffy.vm.interpreter import dvm_program_run, dvm_instruction_run
 
 parser = OptionParser(usage="usage: %prog [options] [ -c cmd | file ]")
 parser.add_option("-v", "--verbose",
@@ -42,13 +42,13 @@ logging.basicConfig(stream=sys.stderr, level=loglevel)
 
 def main():
     """Parse args, setup a :class:`Scheduler` object, and use 
-    :func:`DVM_program_run` to feed the contents of a **Daffy** file to the
+    :func:`dvm_program_run` to feed the contents of a **Daffy** file to the
     scheduler
     """
     scheduler = Scheduler(loglevel=loglevel)
 
     if options.cmd and len(args) == 0:          # called with -c
-        retval = DVM_instruction_run(options.cmd, scheduler)
+        retval = dvm_instruction_run(options.cmd, scheduler)
         return retval
     elif not options.cmd and len(args) == 1:    # called with a file
         filename = args[0]
@@ -57,7 +57,7 @@ def main():
         except IOError, error:
             print("daffy: can't open file '%s': %s" % (filename, error))
             return 1
-        retval = DVM_program_run(f, scheduler)
+        retval = dvm_program_run(f, scheduler)
         f.close()
         return retval
     else:

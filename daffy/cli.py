@@ -19,7 +19,14 @@
 # Original Copyright (c) 2010, Lorenzo Pierfederici <lpierfederici@gmail.com>
 # Contributor(s): 
 #
-"""A command line interface to run **Daffy** programs from files
+"""A command line interface to run *daffy* programs::
+
+    Usage: daffy [options] [ -c cmd | file ]
+
+    Options:
+      -h, --help         show this help message and exit
+      -v, --verbose      print debug messages to stderr
+      -c CMD, --cmd=CMD  a single instruction
 """
 
 import sys, logging
@@ -41,9 +48,10 @@ loglevel = options.verbose and logging.DEBUG or logging.NOTSET
 logging.basicConfig(stream=sys.stderr, level=loglevel)
 
 def main():
-    """Parse args, setup a :class:`Scheduler` object, and use 
-    :func:`dvm_program_run` to feed the contents of a **Daffy** file to the
-    scheduler
+    """Parse args, setup a :class:`Scheduler <daffy.vm.scheduler.Scheduler>`
+    object, and use
+    :func:`dvm_program_run() <daffy.vm.interpreter.dvm_program_run>` to feed it
+    the contents of a *daffy* file.
     """
     scheduler = Scheduler(loglevel=loglevel)
 
